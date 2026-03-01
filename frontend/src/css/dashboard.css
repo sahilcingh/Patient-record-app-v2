@@ -1,5 +1,3 @@
-/* src/css/dashboard.css */
-
 /* --- MAIN LAYOUT GRID --- */
 .dashboard-wrapper { 
     display: flex; 
@@ -10,7 +8,7 @@
 
 /* --- SIDEBAR --- */
 .sidebar { 
-    width: 320px; /* Wider sidebar */
+    width: 240px; /* Scaled from 320px */
     background: var(--surface); 
     border-right: 1px solid var(--border-color); 
     padding: 3rem 2.5rem; 
@@ -33,10 +31,10 @@
     margin-bottom: 3.5rem; 
 }
 
-/* SCALED UP AVATAR */
+/* SCALED DOWN AVATAR */
 .doctor-avatar-container svg { 
-    width: 150px; 
-    height: 150px; 
+    width: 112px; /* Scaled from 150px */
+    height: 112px; 
 }
 
 .welcome-text { 
@@ -63,7 +61,7 @@
     gap: 1.25rem; 
     padding: 1.25rem 1.5rem; 
     margin-bottom: 1rem; 
-    border-radius: 16px; 
+    border-radius: 12px; /* Scaled down */
     cursor: pointer; 
     font-size: 1.1rem; 
     font-weight: 600; 
@@ -74,12 +72,12 @@
 .quick-link.active-link { background-color: #ecfdf5; color: var(--primary); }
 
 .icon-box { 
-    width: 36px; 
-    height: 36px; 
+    width: 27px; /* Scaled from 36px */
+    height: 27px; 
     display: flex; 
     align-items: center; 
     justify-content: center; 
-    border-radius: 10px; 
+    border-radius: 8px; /* Scaled from 10px */
 }
 .solid-green { background-color: var(--primary); color: white; }
 .outline-green { border: 1.5px solid var(--border-color); color: var(--text-muted); }
@@ -127,7 +125,7 @@
     color: white; 
     border: none; 
     padding: 0.8rem 1.75rem; 
-    border-radius: 10px; 
+    border-radius: 8px; /* Scaled from 10px */
     font-weight: 700; 
     font-size: 1.1rem; 
     cursor: pointer; 
@@ -145,7 +143,7 @@
 
 .search-container { 
     flex: 1; 
-    position: relative; /* REQUIRED FOR ICON POSITIONING */
+    position: relative; 
 }
 
 .search-icon { 
@@ -160,9 +158,8 @@
     width: 100%; 
     background: var(--surface); 
     border: 1px solid var(--border-color); 
-    /* THIS PADDING FIXES THE OVERLAP (Top, Right, Bottom, Left) */
     padding: 1.25rem 1.25rem 1.25rem 3.5rem;
-    border-radius: 16px; 
+    border-radius: 12px; /* Scaled from 16px */
     outline: none; 
     font-size: 1.1rem; 
     font-family: inherit;
@@ -175,7 +172,7 @@
     color: white; 
     border: none; 
     padding: 1.25rem 1.75rem; 
-    border-radius: 16px; 
+    border-radius: 12px; /* Scaled from 16px */
     font-weight: 600; 
     font-size: 1.1rem; 
     cursor: pointer; 
@@ -197,7 +194,7 @@
 .data-card { 
     background: var(--surface); 
     border: 1px solid var(--border-color); 
-    border-radius: 20px; 
+    border-radius: 15px; /* Scaled from 20px */
     padding: 3rem; 
     display: flex; 
     flex-direction: column; 
@@ -234,8 +231,8 @@
 .profile-col { display: flex; align-items: center; gap: 1.5rem; }
 
 .avatar { 
-    width: 52px; 
-    height: 52px; 
+    width: 39px; /* Scaled from 52px */
+    height: 39px; 
     border-radius: 50%; 
     display: flex; 
     align-items: center; 
@@ -255,7 +252,7 @@
 .stat-card {
     background: var(--surface);
     border: 1px solid var(--border-color);
-    border-radius: 20px;
+    border-radius: 15px; /* Scaled from 20px */
     padding: 2rem; 
     display: flex;
     flex-direction: column;
@@ -265,15 +262,15 @@
 .stat-card:hover { transform: translateY(-4px); box-shadow: 0 12px 20px -5px rgba(0,0,0,0.08); }
 
 .stat-icon {
-    width: 54px; 
-    height: 54px; 
-    border-radius: 12px;
+    width: 40px; /* Scaled from 54px */
+    height: 40px; 
+    border-radius: 8px; /* Scaled from 12px */
     display: flex;
     align-items: center;
     justify-content: center;
     margin-bottom: 1.25rem;
 }
-.stat-icon svg { width: 26px; height: 26px; }
+.stat-icon svg { width: 20px; height: 20px; /* Scaled from 26px */ }
 
 .icon-blue { background-color: #e0f2fe; color: #3b82f6; }
 .icon-green { background-color: #dcfce7; color: #10b981; }
@@ -314,12 +311,12 @@
 /* --- SEARCH DROPDOWN --- */
 .search-dropdown {
     position: absolute;
-    top: 110%; /* Positions it right below the search bar */
+    top: 110%; 
     left: 0;
     right: 0;
     background: var(--surface);
     border: 1px solid var(--border-color);
-    border-radius: 16px;
+    border-radius: 12px; /* Scaled from 16px */
     box-shadow: 0 10px 30px -5px rgba(0,0,0,0.1);
     z-index: 100;
     max-height: 350px;
@@ -329,7 +326,7 @@
 
 .search-result-item {
     padding: 1rem 1.25rem;
-    border-radius: 10px;
+    border-radius: 8px; /* Scaled from 10px */
     cursor: pointer;
     display: flex;
     justify-content: space-between;
@@ -358,9 +355,9 @@
 
 .modal-content {
     background: var(--surface);
-    border-radius: 24px;
+    border-radius: 18px; /* Scaled from 24px */
     width: 90%;
-    max-width: 650px;
+    max-width: 480px; /* Scaled from 650px */
     padding: 2.5rem;
     box-shadow: 0 25px 50px -12px rgba(0,0,0,0.25);
     max-height: 85vh;
@@ -384,7 +381,7 @@
 .history-item {
     padding: 1.25rem;
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: 8px; /* Scaled from 12px */
     display: flex;
     justify-content: space-between;
     align-items: center;

@@ -1,4 +1,3 @@
-/* src/css/global.css */
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 
 :root {
@@ -9,6 +8,11 @@
     --bg-color: #f8fafc;      
     --surface: #ffffff;       
     --border-color: #e2e8f0;
+}
+
+/* THE MAGIC BULLET: This scales all 'rem' values down to 75% globally */
+html {
+    font-size: 12px; 
 }
 
 /* The !important tag FORCES the browser to use this font no matter what */

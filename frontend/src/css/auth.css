@@ -2,6 +2,7 @@
 @import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
 @import url('https://fonts.googleapis.com/css2?family=Raleway:wght@400;500;600;700;800&display=swap');
 @import url('https://api.fontshare.com/v2/css?f[]=ranade@400,500,600,700&display=swap');
+
 /* --- ANIMATED BACKGROUND WRAPPER --- */
 .login-page-wrapper {
     position: relative;
@@ -24,7 +25,7 @@
     100% { background-position: 0% 50%; }
 }
 
-/* Floating Glowing Orbs */
+/* Floating Glowing Orbs (Scaled down 25%) */
 .bg-shape {
     position: absolute;
     border-radius: 50%;
@@ -33,9 +34,9 @@
     opacity: 0.6;
     animation: float 12s ease-in-out infinite;
 }
-.shape-1 { top: -10%; left: -10%; width: 500px; height: 500px; background: #6ee7b7; animation-delay: 0s; }
-.shape-2 { bottom: -10%; right: -5%; width: 600px; height: 600px; background: #bae6fd; animation-delay: -4s; }
-.shape-3 { top: 40%; left: 40%; width: 400px; height: 400px; background: #a7f3d0; animation-delay: -8s; }
+.shape-1 { top: -10%; left: -10%; width: 375px; height: 375px; background: #6ee7b7; animation-delay: 0s; }
+.shape-2 { bottom: -10%; right: -5%; width: 450px; height: 450px; background: #bae6fd; animation-delay: -4s; }
+.shape-3 { top: 40%; left: 40%; width: 300px; height: 300px; background: #a7f3d0; animation-delay: -8s; }
 
 @keyframes float {
     0% { transform: translateY(0px) scale(1); }
@@ -46,14 +47,14 @@
 /* --- MAIN LOGIN CONTAINER --- */
 .login-container {
     position: relative;
-    z-index: 10; /* Keeps it above the floating orbs */
+    z-index: 10;
     display: flex;
     background: var(--surface, #ffffff);
     border-radius: 24px;
     box-shadow: 0 25px 50px -12px rgba(0,0,0,0.15); 
     overflow: hidden;
     width: 95vw;          
-    max-width: 1500px; /* Slightly wider to accommodate larger fonts */
+    max-width: 1125px; /* Scaled down from 1500px */
     min-height: 85vh;     
 }
 
@@ -68,7 +69,7 @@
 }
 
 .logo {
-    font-size: 1.6rem; /* SCALED UP */
+    font-size: 1.6rem; 
     font-weight: 800;
     display: flex;
     align-items: center;
@@ -87,7 +88,7 @@
 
 .illustration-img {
     width: 100%;
-    max-width: 650px; /* SCALED UP image */
+    max-width: 488px; /* Scaled down from 650px */
     object-fit: contain;
     filter: drop-shadow(0 15px 25px rgba(0,0,0,0.1));
 }
@@ -95,7 +96,7 @@
 /* Right Side: Form Container */
 .login-form-section {
     flex: 1;
-    padding: 5rem 7rem; /* Increased padding */
+    padding: 5rem 7rem; 
     display: flex;
     flex-direction: column;
     justify-content: center;
@@ -107,7 +108,7 @@
     justify-content: flex-end;
     align-items: center;
     margin-bottom: 5rem;
-    font-size: 1.25rem; /* SCALED UP Nav Text */
+    font-size: 1.25rem; 
     color: #64748b;
     font-weight: 600;
     gap: 3rem;
@@ -123,7 +124,7 @@
     background-color: #10b981;
     border: none;
     font-weight: 700;
-    font-size: 1.15rem; /* SCALED UP */
+    font-size: 1.15rem; 
     cursor: pointer;
     font-family: inherit;
 }
@@ -134,7 +135,7 @@
 }
 
 .login-header h1 {
-    font-size: 3.2rem; /* MASSIVELY SCALED UP heading */
+    font-size: 3.2rem; 
     font-weight: 800;
     margin-bottom: 0.75rem;
     color: #0f172a;
@@ -142,7 +143,7 @@
 
 .login-header p { 
     color: #64748b; 
-    font-size: 1.35rem; /* SCALED UP subtitle */
+    font-size: 1.35rem; 
     font-weight: 500;
 }
 
@@ -157,16 +158,16 @@
     top: 50%;
     transform: translateY(-50%);
     color: #9ca3af;
-    width: 24px; /* SCALED UP icons */
-    height: 24px;
+    width: 18px; /* Scaled down from 24px */
+    height: 18px;
 }
 .login-input {
     width: 100%;
-    padding: 1.35rem 1.5rem 1.35rem 4rem; /* Taller inputs */
+    padding: 1.35rem 1.5rem 1.35rem 4rem; 
     border-radius: 14px;
     border: 2px solid #e2e8f0;
     outline: none;
-    font-size: 1.25rem; /* SCALED UP input text */
+    font-size: 1.25rem; 
     color: #1e293b;
     box-sizing: border-box;
     font-family: inherit;
@@ -179,7 +180,7 @@
 .login-btn-submit {
     width: 100%; 
     padding: 1.35rem; 
-    font-size: 1.35rem; /* SCALED UP button text */
+    font-size: 1.35rem; 
     margin-top: 1rem;
     border-radius: 14px;
     background-color: #10b981;
@@ -197,7 +198,7 @@
     text-align: center;
     margin-top: 3rem;
     color: #64748b;
-    font-size: 1.15rem; /* SCALED UP footer text */
+    font-size: 1.15rem; 
     font-weight: 500;
 }
 
@@ -221,7 +222,7 @@
 @media (max-width: 1024px) {
     .login-container { flex-direction: column; min-height: auto; width: 100vw; border-radius: 0; }
     .login-illustration { padding: 3rem; }
-    .illustration-img { max-width: 400px; }
+    .illustration-img { max-width: 300px; /* Scaled down from 400px */ }
     .login-form-section { padding: 4rem 3rem; }
     .login-nav { display: none; }
     .login-header h1 { font-size: 2.5rem; }
