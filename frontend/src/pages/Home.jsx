@@ -27,8 +27,8 @@ const Home = () => {
             if (!token) return;
             try {
                 const [patientsRes, statsRes] = await Promise.all([
-                    fetch('http://localhost:5000/api/patients/recent', { headers: { 'Authorization': `Bearer ${token}` } }),
-                    fetch('http://localhost:5000/api/stats', { headers: { 'Authorization': `Bearer ${token}` } })
+                    fetch('https://patient-record-app-drly.onrender.com/api/patients/recent', { headers: { 'Authorization': `Bearer ${token}` } }),
+                    fetch('https://patient-record-app-drly.onrender.com/api/stats', { headers: { 'Authorization': `Bearer ${token}` } })
                 ]);
                 const patientsData = await patientsRes.json();
                 const statsData = await statsRes.json();
@@ -56,7 +56,7 @@ const Home = () => {
         const delaySearch = setTimeout(async () => {
             const token = localStorage.getItem('doctorToken');
             try {
-                const res = await fetch(`http://localhost:5000/api/patients/search?q=${searchQuery}`, {
+                const res = await fetch(`https://patient-record-app-drly.onrender.com/api/patients/search?q=${searchQuery}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 const data = await res.json();
@@ -81,7 +81,7 @@ const Home = () => {
 
         const token = localStorage.getItem('doctorToken');
         try {
-            const url = `http://localhost:5000/api/patients/history?mobile=${patient.Mobile || ''}&name=${patient.PatientName}`;
+            const url = `https://patient-record-app-drly.onrender.com/api/patients/history?mobile=${patient.Mobile || ''}&name=${patient.PatientName}`;
             const res = await fetch(url, { headers: { 'Authorization': `Bearer ${token}` } });
             const data = await res.json();
             
