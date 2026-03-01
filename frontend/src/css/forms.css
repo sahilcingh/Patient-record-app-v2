@@ -1,0 +1,98 @@
+/* src/css/forms.css */
+
+.page-title { 
+    font-size: 2rem; 
+    color: var(--text-main); 
+    margin-bottom: 1.5rem; 
+    font-weight: 600; 
+}
+.form-card { 
+    background: var(--surface); 
+    border-radius: 20px; 
+    padding: 2.5rem 3rem; 
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05); 
+    border: 1px solid var(--border-color); 
+}
+.form-section-title { 
+    font-size: 1.15rem; 
+    color: var(--text-main); 
+    font-weight: 600; 
+    margin-bottom: 1.25rem; 
+    margin-top: 2rem; 
+}
+.form-section-title:first-child { 
+    margin-top: 0; 
+}
+
+/* Grids */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem 2rem; }
+.grid-4-address { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 1.25rem 2rem; }
+.grid-personal-row1 { display: grid; grid-template-columns: 2.2fr 1.2fr 0.8fr 1.2fr; gap: 1.25rem 2rem; }
+.grid-personal-row2 { display: grid; grid-template-columns: 2.2fr 1.6fr 1.6fr; gap: 1.25rem 2rem; }
+
+/* Soft Inputs */
+.input-grey { 
+    width: 100%; 
+    background-color: #f3f4f6; 
+    border: 1px solid transparent; 
+    padding: 1rem 1.25rem; 
+    border-radius: 10px; 
+    font-size: 1.05rem; 
+    color: var(--text-main); 
+    outline: none; 
+    transition: all 0.2s ease; 
+    font-family: 'Inter', sans-serif; 
+    box-sizing: border-box; 
+}
+.input-grey::placeholder { color: #9ca3af; }
+.input-grey:focus { 
+    background-color: #ffffff; 
+    border-color: var(--primary); 
+    box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); 
+}
+select.input-grey { appearance: auto; color: #6b7280; cursor: pointer; }
+select.input-grey:focus, select.input-grey:valid { color: var(--text-main); }
+textarea.input-grey { resize: vertical; }
+
+/* Buttons */
+.form-actions { 
+    display: flex; 
+    flex-wrap: wrap; 
+    gap: 1rem; 
+    margin-top: 3rem; 
+}
+.btn-save, .btn-action { 
+    background-color: var(--primary); 
+    color: white; 
+    border: none; 
+    padding: 0.85rem 2rem; 
+    border-radius: 8px; 
+    font-weight: 600; 
+    font-size: 1.05rem; 
+    cursor: pointer; 
+    transition: background 0.2s; 
+    font-family: 'Inter', sans-serif; 
+}
+.btn-save:hover, .btn-action:hover { background-color: var(--primary-hover); }
+
+.btn-cancel { 
+    background-color: #9ca3af; 
+    color: white; border: none; 
+    padding: 0.85rem 2rem; 
+    border-radius: 8px; 
+    font-weight: 600; 
+    font-size: 1.05rem; 
+    cursor: pointer; 
+    transition: background 0.2s; 
+}
+.btn-cancel:hover { background-color: #6b7280; }
+
+/* Old Patient Specific Button Colors */
+.btn-blue { background-color: #3b82f6; color: white; }
+.btn-blue:hover { background-color: #2563eb; }
+.btn-green-light { background-color: #a7f3d0; color: #065f46; }
+.btn-green-light:hover { background-color: #6ee7b7; }
+.btn-grey { background-color: #9ca3af; color: white; }
+.btn-grey:hover { background-color: #6b7280; }
+.btn-red { background-color: #ef4444; color: white; }
+.btn-red:hover { background-color: #dc2626; }

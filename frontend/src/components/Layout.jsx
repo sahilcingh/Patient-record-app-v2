@@ -1,0 +1,156 @@
+import React, { useState, useEffect } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+
+// Note: If you moved your CSS to the public folder earlier, you can delete these two lines.
+// If your CSS is still in the src folder, leave them exactly as they are!
+import '../css/global.css';
+import '../css/dashboard.css';
+
+const Layout = ({ children }) => {
+    const location = useLocation();
+    const navigate = useNavigate();
+    
+    // States for Mobile Menu, Logout Modal, and Doctor's Name
+    const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+    const [isLogoutModalOpen, setIsLogoutModalOpen] = useState(false);
+    const [doctorName, setDoctorName] = useState('Doctor'); // Default fallback
+
+    // Fetch the doctor's name from localStorage when the layout loads
+    useEffect(() => {
+        const storedName = localStorage.getItem('doctorName');
+        if (storedName) {
+            // eslint-disable-next-line react-hooks/set-state-in-effect
+            setDoctorName(storedName);
+        }
+    }, []);
+
+    // This is the function that actually logs the user out when they click "Yes"
+    const confirmLogout = () => {
+        localStorage.removeItem('doctorToken');
+        localStorage.removeItem('doctorName');
+        localStorage.removeItem('dbName');
+        navigate('/'); 
+    };
+
+    const handleNavClick = (path) => {
+        setIsMobileMenuOpen(false);
+        navigate(path);
+    };
+
+    return (
+        <div className="dashboard-wrapper">
+            
+            {/* Mobile Overlay */}
+            {isMobileMenuOpen && (
+                <div style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.5)', zIndex: 40 }} onClick={() => setIsMobileMenuOpen(false)} />
+            )}
+
+            {/* --- SIDEBAR --- */}
+            <aside className={`sidebar ${isMobileMenuOpen ? 'mobile-open' : ''}`}>
+                <div className="logo" style={{ marginBottom: '3rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                        <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="6" cy="6" r="4" fill="#f59e0b"/>
+                            <circle cx="18" cy="6" r="4" fill="#3b82f6"/>
+                            <circle cx="6" cy="18" r="4" fill="#10b981"/>
+                            <circle cx="18" cy="18" r="4" fill="#0ea5e9"/>
+                        </svg>
+                        Doctors
+                    </div>
+                    {/* Mobile Close Button */}
+                    <button className="hamburger-toggle" onClick={() => setIsMobileMenuOpen(false)}>
+                        <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+
+                <div className="profile-section">
+                    <div className="doctor-avatar-container">
+                        <svg width="120" height="120" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                            <circle cx="50" cy="50" r="50" fill="#e0f2fe"/>
+                            <circle cx="50" cy="35" r="16" fill="#fca5a5"/>
+                            <path d="M20 100 Q 20 60 50 60 Q 80 60 80 100 Z" fill="#ffffff" stroke="#e5e7eb" strokeWidth="2"/>
+                            <path d="M43 60 L 43 85 L 57 85 L 57 60" fill="#3b82f6"/>
+                            <circle cx="50" cy="75" r="10" fill="none" stroke="#64748b" strokeWidth="2"/>
+                        </svg>
+                    </div>
+                    {/* --- DYNAMIC DOCTOR NAME --- */}
+                    <h2 className="welcome-text">Welcome back,<br/>Dr. {doctorName}.</h2>
+                </div>
+
+                <div className="quick-links-container">
+                    <h3 className="quick-links-title">QUICK LINKS</h3>
+                    
+                    <div className={`quick-link ${location.pathname === '/new-patient' ? 'active-link' : ''}`} onClick={() => handleNavClick('/new-patient')}>
+                        <div className="icon-box solid-green">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2.5" d="M12 4v16m8-8H4"></path></svg>
+                        </div>
+                        <span style={{ fontWeight: 600 }}>New Patient</span>
+                    </div>
+                    
+                    <div className="quick-link">
+                        <div className="icon-box outline-green">
+                            <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
+                        </div>
+                        <span>View Reports</span>
+                    </div>
+                </div>
+            </aside>
+
+            {/* --- MAIN CONTENT AREA --- */}
+            <main className="main-content">
+                
+                {/* --- TOP NAVIGATION --- */}
+                <header className="top-nav">
+                    <button className="hamburger-toggle" onClick={() => setIsMobileMenuOpen(true)}>
+                        <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18M3 6h18M3 18h18"></path></svg>
+                    </button>
+                    
+                    <div className="nav-right-group">
+                        <nav className="nav-links">
+                            <Link to="/home" className={location.pathname === '/home' ? 'active' : ''}>Home</Link>
+                            <Link to="/patients" className={location.pathname === '/patients' ? 'active' : ''}>Patients</Link>
+                            <a href="#">Reports</a>
+                        </nav>
+                        {/* UPDATED: Button now opens the modal */}
+                        <button className="user-profile-btn" onClick={() => setIsLogoutModalOpen(true)}>Log Out</button>
+                    </div>
+                </header>
+
+                {children}
+
+                {/* --- LOGOUT CONFIRMATION MODAL --- */}
+                {isLogoutModalOpen && (
+                    <div className="modal-overlay" onClick={() => setIsLogoutModalOpen(false)}>
+                        <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '420px', textAlign: 'center', padding: '2.5rem' }}>
+                            <div style={{ background: '#fee2e2', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', color: '#ef4444' }}>
+                                <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path></svg>
+                            </div>
+                            <h2 style={{ marginBottom: '0.75rem', color: 'var(--text-main)', fontSize: '1.5rem', fontWeight: 800 }}>Log Out</h2>
+                            <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '1.05rem' }}>Are you sure you want to log out of your account?</p>
+                            
+                            {/* UPDATED: Buttons now share 50% width each and text won't wrap */}
+                            <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
+                                <button 
+                                    className="btn-cancel" 
+                                    style={{ flex: 1, padding: '0.85rem', fontSize: '1.05rem', whiteSpace: 'nowrap' }} 
+                                    onClick={() => setIsLogoutModalOpen(false)}
+                                >
+                                    Cancel
+                                </button>
+                                <button 
+                                    className="btn-save" 
+                                    style={{ flex: 1, backgroundColor: '#ef4444', padding: '0.85rem', fontSize: '1.05rem', whiteSpace: 'nowrap' }} 
+                                    onClick={confirmLogout}
+                                >
+                                    Yes, Log Out
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
+            </main>
+        </div>
+    );
+};
+
+export default Layout;

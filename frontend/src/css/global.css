@@ -1,0 +1,35 @@
+/* src/css/global.css */
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+:root {
+    --primary: #10b981;       
+    --primary-hover: #059669;
+    --text-main: #1e293b;     
+    --text-muted: #64748b;    
+    --bg-color: #f8fafc;      
+    --surface: #ffffff;       
+    --border-color: #e2e8f0;
+}
+
+/* The !important tag FORCES the browser to use this font no matter what */
+body, button, nav, aside, input, textarea, select, div, span, p, h1, h2, h3 { 
+    margin: 0; 
+    padding: 0;
+    font-family: 'Plus Jakarta Sans', sans-serif !important; 
+    -webkit-font-smoothing: antialiased; 
+}
+
+body {
+    font-size: 1.1rem; 
+    background-color: var(--bg-color); 
+    color: var(--text-main); 
+}
+
+* { 
+    box-sizing: border-box; 
+}
+
+a { 
+    text-decoration: none; 
+    color: inherit; 
+}
