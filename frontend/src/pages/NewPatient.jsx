@@ -7,8 +7,9 @@ const NewPatient = () => {
     const formRef = useRef(null);
     const [loading, setLoading] = useState(false);
     
-    // NEW: State for the confirmation modal
+    // Modals State
     const [showConfirmModal, setShowConfirmModal] = useState(false);
+    const [isInvModalOpen, setIsInvModalOpen] = useState(false);
 
     // Form State
     const [formData, setFormData] = useState({
@@ -17,10 +18,13 @@ const NewPatient = () => {
         chiefComplaint: '', medicine: '',
         total: '', cartage: '', conveyance: ''
     });
+    
+    // Investigation State
+    const [investigationText, setInvestigationText] = useState('');
 
     const labelStyle = { 
-        fontSize: '0.9rem', color: 'var(--text-muted)', 
-        marginLeft: '5px', marginBottom: '8px', 
+        fontSize: '0.85rem', color: 'var(--text-muted)', 
+        marginLeft: '5px', marginBottom: '4px', 
         display: 'block', fontWeight: 600 
     };
 
@@ -30,15 +34,15 @@ const NewPatient = () => {
 
         // 1. Mobile Number: Strictly numbers only, max 10 digits
         if (id === 'mobile') {
-            const onlyNumbers = value.replace(/\D/g, ''); // Strips out any non-number character
-            if (onlyNumbers.length > 10) return; // Stops typing after 10 digits
+            const onlyNumbers = value.replace(/\D/g, ''); 
+            if (onlyNumbers.length > 10) return; 
             setFormData(prev => ({ ...prev, [id]: onlyNumbers }));
             return;
         }
 
         // 2. Age Limit: Cannot exceed 105
         if (id === 'age') {
-            if (value !== '' && parseInt(value) > 105) return; // Stops typing if over 105
+            if (value !== '' && parseInt(value) > 105) return; 
             setFormData(prev => ({ ...prev, [id]: value }));
             return;
         }
@@ -84,10 +88,19 @@ const NewPatient = () => {
         return () => focusableElements.forEach(el => el.removeEventListener('keydown', handleKeyDown));
     }, []);
 
-    // --- UPGRADED: Intercept form submit to show popup first ---
+    // --- AUTHENTICATION HELPER ---
+    const handleAuthError = (status) => {
+        if (status === 401 || status === 403) {
+            localStorage.removeItem('doctorToken');
+            localStorage.removeItem('doctorName');
+            localStorage.removeItem('dbName');
+            navigate('/');
+        }
+    };
+
+    // --- Intercept form submit to show popup first ---
     const handleInitialSubmit = (e) => {
         e.preventDefault();
-        // If the code reaches here, all 'required' fields have been filled out!
         setShowConfirmModal(true); 
     };
 
@@ -116,7 +129,8 @@ const NewPatient = () => {
             fatherName: formData.fatherName, sex: formData.gender,
             age: formData.age, mobile: formData.mobile,
             address: formData.address, chiefComplaint: formData.chiefComplaint,
-            medicine: formData.medicine, tests: "", 
+            medicine: formData.medicine, 
+            tests: investigationText, // <-- Sent from our new modal
             total: formData.total || 0, cartage: formData.cartage || 0,
             conveyance: formData.conveyance || 0, grandTotal: grandTotal
         };
@@ -127,6 +141,13 @@ const NewPatient = () => {
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                 body: JSON.stringify(payload)
             });
+            
+            if (!response.ok) {
+                handleAuthError(response.status);
+                setLoading(false);
+                return;
+            }
+
             const data = await response.json();
             if (data.success) {
                 navigate('/home'); 
@@ -143,18 +164,18 @@ const NewPatient = () => {
 
     return (
         <>
-            <h1 className="page-title">New Patient Registration</h1>
+            <h1 className="page-title" style={{ marginBottom: '1rem', fontSize: '1.75rem' }}>New Patient Registration</h1>
 
             <div className="form-card">
-                {/* Notice onSubmit is now connected to our interceptor function */}
                 <form ref={formRef} onSubmit={handleInitialSubmit}>
                     
                     <div className="form-section-title">Personal Information</div>
                     
-                    <div className="grid-personal-row1" style={{ marginBottom: '1.25rem' }}>
+                    {/* TIGHTER MARGINS APPLIED BELOW */}
+                    <div className="grid-personal-row1" style={{ marginBottom: '0.75rem' }}>
                         <div>
                             <label style={labelStyle}>Patient's Name *</label>
-                            <input type="text" className="input-grey" id="patientName" value={formData.patientName} onChange={handleChange} placeholder="Enter name" required />
+                            <input type="text" className="input-grey" id="patientName" value={formData.patientName} onChange={handleChange} placeholder="Enter name" required autoFocus />
                         </div>
                         <div>
                             <label style={labelStyle}>Date *</label>
@@ -175,14 +196,13 @@ const NewPatient = () => {
                         </div>
                     </div>
                     
-                    <div className="grid-personal-row2" style={{ marginBottom: '1.5rem' }}>
+                    <div className="grid-personal-row2" style={{ marginBottom: '0.75rem' }}>
                         <div>
                             <label style={labelStyle}>Father's Name *</label>
                             <input type="text" className="input-grey" id="fatherName" value={formData.fatherName} onChange={handleChange} placeholder="Enter father's name" required />
                         </div>
                         <div>
                             <label style={labelStyle}>Contact Number *</label>
-                            {/* Changed type to 'text' to prevent browser up/down arrows, our regex handles the numbers */}
                             <input type="text" className="input-grey" id="mobile" value={formData.mobile} onChange={handleChange} placeholder="10-digit number" required />
                         </div>
                         <div>
@@ -192,24 +212,32 @@ const NewPatient = () => {
                     </div>
 
                     <div className="form-section-title">Address</div>
-                    <div style={{ marginBottom: '1.5rem' }}>
-                        <textarea className="input-grey" id="address" value={formData.address} onChange={handleChange} placeholder="Enter full address..." rows="3" style={{ resize: 'vertical' }} required></textarea>
+                    <div style={{ marginBottom: '0.75rem' }}>
+                        <textarea className="input-grey" id="address" value={formData.address} onChange={handleChange} placeholder="Enter full address..." rows="1" style={{ resize: 'vertical' }} required></textarea>
                     </div>
 
-                    <div className="form-section-title">Clinical Details</div>
-                    <div className="grid-2" style={{ marginBottom: '1.5rem' }}>
+                    {/* CLINICAL DETAILS & INVESTIGATION BUTTON */}
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', marginBottom: '0.5rem' }}>
+                        <div className="form-section-title" style={{ margin: 0 }}>Clinical Details</div>
+                        <button type="button" className="btn-green-light" style={{ padding: '0.4rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={() => setIsInvModalOpen(true)}>
+                            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"></path></svg>
+                            Add Investigation
+                        </button>
+                    </div>
+
+                    <div className="grid-2" style={{ marginBottom: '0.75rem' }}>
                         <div>
                             <label style={labelStyle}>Chief Complaint *</label>
-                            <textarea className="input-grey" id="chiefComplaint" value={formData.chiefComplaint} onChange={handleChange} placeholder="Enter chief complaint..." rows="3" style={{ resize: 'vertical' }} required></textarea>
+                            <textarea className="input-grey" id="chiefComplaint" value={formData.chiefComplaint} onChange={handleChange} placeholder="Enter chief complaint..." rows="2" style={{ resize: 'vertical' }} required></textarea>
                         </div>
                         <div>
                             <label style={labelStyle}>Medicine *</label>
-                            <textarea className="input-grey" id="medicine" value={formData.medicine} onChange={handleChange} placeholder="Enter prescribed medicine..." rows="3" style={{ resize: 'vertical' }} required></textarea>
+                            <textarea className="input-grey" id="medicine" value={formData.medicine} onChange={handleChange} placeholder="Enter prescribed medicine..." rows="2" style={{ resize: 'vertical' }} required></textarea>
                         </div>
                     </div>
 
                     <div className="form-section-title">Billing Details</div>
-                    <div className="grid-4-address" style={{ marginBottom: '1.5rem' }}>
+                    <div className="grid-4-address" style={{ marginBottom: '1rem' }}>
                         <div>
                             <label style={labelStyle}>Total *</label>
                             <input type="number" className="input-grey" id="total" value={formData.total} onChange={handleChange} placeholder="0" min="0" required />
@@ -224,20 +252,51 @@ const NewPatient = () => {
                         </div>
                         <div>
                             <label style={{ ...labelStyle, color: 'var(--primary)', fontWeight: 800 }}>Grand Total</label>
-                            <input type="text" className="input-grey" value={grandTotal} readOnly style={{ backgroundColor: '#dcfce7', fontWeight: 800, color: '#065f46', borderColor: '#10b981' }} />
+                            <input type="text" className="input-grey" value={grandTotal} readOnly style={{ backgroundColor: '#ecfdf5', fontWeight: 800, color: '#059669', borderColor: '#10b981' }} />
                         </div>
                     </div>
 
-                    <div className="form-actions">
-                        <button type="submit" className="btn-save" disabled={loading}>
+                    <div className="form-actions" style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
+                        <button type="submit" className="btn-save" disabled={loading} style={{ flex: 1 }}>
                             {loading ? 'Processing...' : 'Save Patient'}
                         </button>
-                        <button type="button" className="btn-cancel" onClick={() => navigate('/home')} disabled={loading}>
+                        <button type="button" className="btn-cancel" onClick={() => navigate('/home')} disabled={loading} style={{ flex: 1 }}>
                             Cancel
                         </button>
                     </div>
                 </form>
             </div>
+
+            {/* --- INVESTIGATION MODAL --- */}
+            {isInvModalOpen && (
+                <div className="modal-overlay" onClick={() => setIsInvModalOpen(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px', padding: '2rem' }}>
+                        <div className="modal-header" style={{ marginBottom: '1.5rem', paddingBottom: '1rem' }}>
+                            <h2 style={{ fontSize: '1.4rem', margin: 0, color: 'var(--text-main)' }}>Investigations / Tests</h2>
+                            <button className="close-btn" onClick={() => setIsInvModalOpen(false)}>×</button>
+                        </div>
+                        
+                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1rem' }}>
+                            Enter the details of any tests or investigations prescribed for this patient.
+                        </p>
+                        
+                        <textarea 
+                            className="input-grey" 
+                            rows="5" 
+                            placeholder="E.g., Complete Blood Count (CBC), X-Ray Chest..."
+                            value={investigationText}
+                            onChange={(e) => setInvestigationText(e.target.value)}
+                            style={{ resize: 'vertical', marginBottom: '1.5rem' }}
+                            autoFocus
+                        ></textarea>
+
+                        <div style={{ display: 'flex', gap: '1rem' }}>
+                            <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={() => setIsInvModalOpen(false)}>Cancel</button>
+                            <button type="button" className="btn-save" style={{ flex: 1 }} onClick={() => setIsInvModalOpen(false)}>Save Tests</button>
+                        </div>
+                    </div>
+                </div>
+            )}
 
             {/* --- SAVE CONFIRMATION MODAL --- */}
             {showConfirmModal && (
@@ -250,8 +309,8 @@ const NewPatient = () => {
                         <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '1.05rem', lineHeight: '1.5' }}>Are you sure you want to save <strong>{formData.patientName}</strong> to the database?</p>
                         
                         <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                            <button className="btn-cancel" onClick={() => setShowConfirmModal(false)}>Review Again</button>
-                            <button className="btn-save" onClick={confirmSavePatient}>Yes, Save Record</button>
+                            <button className="btn-cancel" style={{ flex: 1 }} onClick={() => setShowConfirmModal(false)}>Review Again</button>
+                            <button className="btn-save" style={{ flex: 1 }} onClick={confirmSavePatient}>Yes, Save Record</button>
                         </div>
                     </div>
                 </div>

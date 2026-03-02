@@ -160,14 +160,20 @@ app.get('/api/patients/search', authenticateToken, async (req, res) => {
         const result = await pool.request()
             .input('query', sql.VarChar, `%${q}%`)
             .query(`
-                SELECT DISTINCT 
-                    B_Sno AS VisitID, 
-                    B_PName AS PatientName, 
-                    B_FName AS FatherName, 
-                    B_Mobile AS Mobile,
-                    B_Date AS VisitDate
-                FROM dbo.Pat_Master
-                WHERE B_PName LIKE @query OR B_Mobile LIKE @query
+                WITH RankedPatients AS (
+                    SELECT 
+                        B_Sno AS VisitID, 
+                        B_PName AS PatientName, 
+                        B_FName AS FatherName, 
+                        B_Mobile AS Mobile,
+                        B_Date AS VisitDate,
+                        ROW_NUMBER() OVER(PARTITION BY B_Mobile ORDER BY CAST(B_Sno AS INT) DESC) as rn
+                    FROM dbo.Pat_Master
+                    WHERE B_PName LIKE @query OR B_Mobile LIKE @query
+                )
+                SELECT VisitID, PatientName, FatherName, Mobile, VisitDate
+                FROM RankedPatients
+                WHERE rn = 1
                 ORDER BY VisitDate DESC
             `);
             
