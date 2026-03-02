@@ -204,15 +204,15 @@
 
 .card-header { font-size: 1.5rem; font-weight: 700; margin-bottom: 2rem; color: var(--text-main); }
 
-/* --- RECENT PATIENTS LIST (IMAGE 3 MATCH) --- */
+/* --- RECENT PATIENTS LIST (MATCHING IMAGE 3 EXACTLY) --- */
 .list-headers { 
     display: flex; 
     justify-content: space-between; 
     font-size: 0.95rem; 
     color: #64748b; 
     padding-bottom: 0.75rem; 
-    border-bottom: 1px solid #e2e8f0; 
-    margin-bottom: 0.5rem; 
+    border-bottom: 1px solid #f1f5f9; 
+    margin-bottom: 0; 
     font-weight: 600;
 }
 
@@ -220,27 +220,32 @@
     display: flex; 
     justify-content: space-between; 
     align-items: center; 
-    padding: 0.85rem 0.75rem; 
-    border-radius: 8px;
+    padding: 1.1rem 0.75rem; /* Restored breathing room */
+    border-bottom: 1px solid #f1f5f9; /* Restored the subtle separator lines */
     transition: background 0.2s;
     cursor: pointer;
-    border-bottom: none; 
-    margin: 0 -0.75rem;
+    margin: 0; /* Removed the negative margin that broke alignment */
 }
 
 .list-item:hover { 
-    background-color: #f8fafc; 
+    background-color: #f8fafc; /* Soft hover effect matching REETA row */
+    border-radius: 8px;
+    border-bottom-color: transparent; 
+}
+
+.list-item:last-child { 
+    border-bottom: none; 
 }
 
 .profile-col { 
     display: flex; 
     align-items: center; 
-    gap: 1.25rem; 
+    gap: 1.5rem; /* Fixed gap between avatar and text */
 }
 
 .avatar { 
-    width: 44px; 
-    height: 44px; 
+    width: 48px; 
+    height: 48px; 
     border-radius: 50%; 
     background-color: #e0f2fe; 
     color: #0284c7; 
@@ -248,19 +253,20 @@
     align-items: center; 
     justify-content: center; 
     font-weight: 700; 
-    font-size: 1.15rem; 
+    font-size: 1.2rem; 
 }
 
 .item-name { 
     font-weight: 700; 
-    font-size: 1.1rem; 
+    font-size: 1.15rem; 
     color: #0f172a; 
+    margin: 0;
 }
 
 .date-col { 
     font-weight: 700; 
-    font-size: 1rem; 
-    color: #0f172a; 
+    font-size: 1.05rem; 
+    color: #334155; 
 }
 
 /* --- STATS GRID --- */
