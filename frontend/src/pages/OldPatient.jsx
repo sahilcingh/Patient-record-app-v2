@@ -194,35 +194,34 @@ const OldPatient = () => {
     };
 
     const handleDeleteConfirm = async () => {
-        setProcessing(true); // Disables buttons while deleting
-        try {
-            // FIXED: Using 'doctorToken' instead of 'token'
-            const token = localStorage.getItem('doctorToken'); 
+    setProcessing(true); 
+    try {
+        const token = localStorage.getItem('doctorToken'); 
 
-            // FIXED: Using 'visitId' instead of 'id'
-            const response = await fetch(`https://patient-record-app-drly.onrender.com/api/patients/visit/${visitId}`, {
-                method: 'DELETE',
-                headers: {
-                    'Authorization': `Bearer ${token}`,
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                alert("Visit record deleted successfully.");
-                setModalConfig({ ...modalConfig, isOpen: false }); // Close the modal
-                navigate('/home'); // Redirect to home/dashboard
-            } else {
-                alert(data.message || "Failed to delete the record.");
+        const response = await fetch(`https://patient-record-app-drly.onrender.com/api/patients/visit/${visitId}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
             }
-        } catch (error) {
-            console.error("Error deleting record:", error);
-            alert("An error occurred while trying to delete.");
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            // Success alert removed! It will now just smoothly transition.
+            setModalConfig({ ...modalConfig, isOpen: false }); 
+            navigate('/home'); 
+        } else {
+            // Logs the error silently instead of an ugly popup
+            console.error(data.message || "Failed to delete the record.");
         }
-        setProcessing(false);
-    };
+    } catch (error) {
+        console.error("Error deleting record:", error);
+    }
+    setProcessing(false);
+};
+
 
     // --- BUTTON CLICK HANDLERS (Validates form before opening modal) ---
     const handleActionClick = (actionType) => {
