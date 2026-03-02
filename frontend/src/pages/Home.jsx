@@ -25,7 +25,6 @@ const Home = () => {
     const [patientHistory, setPatientHistory] = useState([]);
 
     // --- AUTHENTICATION HELPER ---
-    // Instantly logs the user out if their 8-hour token has expired
     const handleAuthError = (status) => {
         if (status === 401 || status === 403) {
             localStorage.removeItem('doctorToken');
@@ -108,7 +107,6 @@ const Home = () => {
             }
         };
 
-        // Debounce: Wait 300ms after typing stops before searching
         const delayDebounceFn = setTimeout(() => {
             fetchSearchResults();
         }, 300);
@@ -134,12 +132,10 @@ const Home = () => {
             const data = await res.json();
             
             if (data.success && data.history && data.history.length > 1) {
-                // Multiple visits: Open Modal
                 setSelectedPatient(patient);
                 setPatientHistory(data.history);
                 setIsModalOpen(true);
             } else {
-                // Only one visit: Bypass modal & jump to record
                 const targetVisitId = (data.history && data.history.length === 1) 
                     ? data.history[0].VisitID 
                     : patient.VisitID; 
@@ -187,7 +183,7 @@ const Home = () => {
                     )}
                 </div>
                 <button className="btn-new-patient" onClick={() => navigate('/new-patient')}>
-                    <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                         <line x1="12" y1="5" x2="12" y2="19"></line>
                         <line x1="5" y1="12" x2="19" y2="12"></line>
                     </svg>
@@ -211,19 +207,16 @@ const Home = () => {
                             recentPatients.map((patient, index) => {
                                 const dateObj = new Date(patient.VisitDate);
                                 const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${dateObj.getFullYear()}`;
-                                
+                                const initial = patient.PatientName ? patient.PatientName.charAt(0).toUpperCase() : '?';
+
                                 return (
                                     <div key={index} className="list-item" onClick={() => handlePatientClick(patient)}>
                                         <div className="profile-col">
-                                            <div className="avatar" style={{ backgroundColor: '#e0f2fe', color: '#0284c7' }}>
-                                                {patient.PatientName ? patient.PatientName.charAt(0).toUpperCase() : '?'}
-                                            </div>
-                                            <div>
-                                                <div className="item-name">{patient.PatientName}</div>
-                                            </div>
+                                            <div className="avatar">{initial}</div>
+                                            <div className="item-name">{patient.PatientName}</div>
                                         </div>
                                         <div className="date-col">
-                                            <div style={{ fontWeight: 700, color: 'var(--text-main)' }}>{formattedDate}</div>
+                                            {formattedDate}
                                         </div>
                                     </div>
                                 )
