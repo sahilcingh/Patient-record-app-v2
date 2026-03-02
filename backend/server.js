@@ -185,6 +185,28 @@ app.get('/api/patients/search', authenticateToken, async (req, res) => {
     }
 });
 
+// --- API ENDPOINT: DELETE A PATIENT VISIT ---
+app.delete('/api/patients/visit/:id', authenticateToken, async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        
+        // Execute the delete query using the ID passed in the URL
+        const result = await pool.request()
+            .input('sno', sql.Int, req.params.id)
+            .query(`DELETE FROM dbo.Pat_Master WHERE B_Sno = @sno`);
+            
+        // Check if a row was actually deleted
+        if (result.rowsAffected[0] > 0) {
+            res.json({ success: true, message: 'Visit record deleted successfully.' });
+        } else {
+            res.status(404).json({ success: false, message: 'Visit not found or already deleted.' });
+        }
+    } catch (err) {
+        console.error('Delete visit error:', err);
+        res.status(500).json({ success: false, message: 'Failed to delete the patient record.' });
+    }
+});
+
 // --- API ENDPOINT: GET PATIENT VISIT HISTORY (Modal) ---
 app.get('/api/patients/history', authenticateToken, async (req, res) => {
     const { mobile, name } = req.query;
