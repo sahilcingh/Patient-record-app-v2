@@ -149,31 +149,6 @@ const OldPatient = () => {
 
     const grandTotal = ((parseFloat(formData.total) || 0) + (parseFloat(formData.cartage) || 0) + (parseFloat(formData.conveyance) || 0)).toString();
 
-    // --- BUTTON CLICK HANDLERS (Validates form before opening modal) ---
-    const handleActionClick = (actionType) => {
-        if (actionType !== 'delete' && !formRef.current.reportValidity()) return;
-
-        if (actionType === 'update') {
-            setModalConfig({
-                isOpen: true, type: 'update', title: 'Confirm Update', color: '#3b82f6',
-                message: `Are you sure you want to update the existing record for ${formData.patientName}?`,
-                action: executeUpdate
-            });
-        } else if (actionType === 'saveNew') {
-            setModalConfig({
-                isOpen: true, type: 'saveNew', title: 'Save as New Record', color: '#10b981',
-                message: `This will create a completely new visit entry for ${formData.patientName}. Proceed?`,
-                action: executeSaveNew
-            });
-        } else if (actionType === 'delete') {
-            setModalConfig({
-                isOpen: true, type: 'delete', title: 'Delete Record', color: '#ef4444',
-                message: `WARNING: Are you sure you want to permanently delete Visit #${visitId}? This cannot be undone.`,
-                action: executeDelete
-            });
-        }
-    };
-
     // --- API EXECUTION FUNCTIONS ---
     const executeUpdate = async () => {
         alert("We need to add the PUT route to server.js for this to work!");
@@ -219,33 +194,60 @@ const OldPatient = () => {
     };
 
     const handleDeleteConfirm = async () => {
-    try {
-        // Get your security token (adjust this if you store it in sessionStorage or a context)
-        const token = localStorage.getItem('token'); 
+        setProcessing(true); // Disables buttons while deleting
+        try {
+            // FIXED: Using 'doctorToken' instead of 'token'
+            const token = localStorage.getItem('doctorToken'); 
 
-        // Make sure to use your actual API base URL here, especially if pushing to Vercel
-        const response = await fetch(`http://localhost:5000/api/patients/visit/${id}`, {
-            method: 'DELETE',
-            headers: {
-                'Authorization': `Bearer ${token}`,
-                'Content-Type': 'application/json'
+            // FIXED: Using 'visitId' instead of 'id'
+            const response = await fetch(`https://patient-record-app-drly.onrender.com/api/patients/visit/${visitId}`, {
+                method: 'DELETE',
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert("Visit record deleted successfully.");
+                setModalConfig({ ...modalConfig, isOpen: false }); // Close the modal
+                navigate('/home'); // Redirect to home/dashboard
+            } else {
+                alert(data.message || "Failed to delete the record.");
             }
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            alert("Visit record deleted successfully.");
-            // Add code here to close the modal and redirect the user back to the dashboard or patient list
-            // e.g., navigate('/dashboard'); or window.location.href = '/';
-        } else {
-            alert(data.message || "Failed to delete the record.");
+        } catch (error) {
+            console.error("Error deleting record:", error);
+            alert("An error occurred while trying to delete.");
         }
-    } catch (error) {
-        console.error("Error deleting record:", error);
-        alert("An error occurred while trying to delete.");
-    }
-};
+        setProcessing(false);
+    };
+
+    // --- BUTTON CLICK HANDLERS (Validates form before opening modal) ---
+    const handleActionClick = (actionType) => {
+        if (actionType !== 'delete' && !formRef.current.reportValidity()) return;
+
+        if (actionType === 'update') {
+            setModalConfig({
+                isOpen: true, type: 'update', title: 'Confirm Update', color: '#3b82f6',
+                message: `Are you sure you want to update the existing record for ${formData.patientName}?`,
+                action: executeUpdate
+            });
+        } else if (actionType === 'saveNew') {
+            setModalConfig({
+                isOpen: true, type: 'saveNew', title: 'Save as New Record', color: '#10b981',
+                message: `This will create a completely new visit entry for ${formData.patientName}. Proceed?`,
+                action: executeSaveNew
+            });
+        } else if (actionType === 'delete') {
+            setModalConfig({
+                isOpen: true, type: 'delete', title: 'Delete Record', color: '#ef4444',
+                message: `WARNING: Are you sure you want to permanently delete Visit #${visitId}? This cannot be undone.`,
+                action: handleDeleteConfirm // FIXED: Points to the correct function now
+            });
+        }
+    };
 
     if (initialLoading) return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading Record...</div>;
 
