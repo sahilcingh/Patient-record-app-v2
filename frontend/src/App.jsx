@@ -18,7 +18,7 @@ function App() {
         <Route path="/old-patient" element={<OldPatient />} />
         
         {/* 2. ADD THIS EXACT LINE HERE: */}
-        <Route path="/patients" element={<PatientsList />} />
+        <Route path="/patient" element={<PatientsList />} />
         
       </Routes>
     </Router>
