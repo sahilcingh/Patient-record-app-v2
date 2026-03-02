@@ -218,10 +218,34 @@ const OldPatient = () => {
         setProcessing(false);
     };
 
-    const executeDelete = async () => {
-        alert("We need to add the DELETE route to server.js for this to work!");
-        setModalConfig({ ...modalConfig, isOpen: false });
-    };
+    const handleDeleteConfirm = async () => {
+    try {
+        // Get your security token (adjust this if you store it in sessionStorage or a context)
+        const token = localStorage.getItem('token'); 
+
+        // Make sure to use your actual API base URL here, especially if pushing to Vercel
+        const response = await fetch(`http://localhost:5000/api/patients/visit/${id}`, {
+            method: 'DELETE',
+            headers: {
+                'Authorization': `Bearer ${token}`,
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const data = await response.json();
+
+        if (data.success) {
+            alert("Visit record deleted successfully.");
+            // Add code here to close the modal and redirect the user back to the dashboard or patient list
+            // e.g., navigate('/dashboard'); or window.location.href = '/';
+        } else {
+            alert(data.message || "Failed to delete the record.");
+        }
+    } catch (error) {
+        console.error("Error deleting record:", error);
+        alert("An error occurred while trying to delete.");
+    }
+};
 
     if (initialLoading) return <div style={{ padding: '3rem', textAlign: 'center', color: 'var(--text-muted)' }}>Loading Record...</div>;
 
