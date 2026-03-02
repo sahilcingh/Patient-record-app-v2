@@ -6,6 +6,10 @@ const PatientsList = () => {
     const [patients, setPatients] = useState([]);
     const [loading, setLoading] = useState(true);
     
+    // --- NEW: Smart Toolbar States ---
+    const [searchTerm, setSearchTerm] = useState('');
+    const [activeTab, setActiveTab] = useState('all'); // 'all', 'recent', 'frequent'
+
     // Modal State
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
@@ -61,6 +65,41 @@ const PatientsList = () => {
         }
     };
 
+    // --- NEW: Filter Logic for the Toolbar ---
+    const filteredPatients = patients.filter(p => {
+        // 1. Search Logic
+        const matchesSearch = (p.PatientName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
+                              (p.Mobile || '').includes(searchTerm);
+        if (!matchesSearch) return false;
+
+        // 2. Tab Logic
+        if (activeTab === 'frequent') return p.VisitCount > 1;
+        if (activeTab === 'recent') {
+            const thirtyDaysAgo = new Date();
+            thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+            return new Date(p.LastVisitDate) >= thirtyDaysAgo;
+        }
+        
+        return true; // 'all' tab
+    });
+
+    // --- NEW: Export to CSV feature ---
+    const handleExportCSV = () => {
+        const headers = ['Patient Name', 'Contact Number', 'Last Visit Date', 'Total Visits'];
+        const csvData = filteredPatients.map(p => 
+            `"${formatName(p.PatientName)}","${p.Mobile || 'N/A'}","${formatDate(p.LastVisitDate)}","${p.VisitCount}"`
+        );
+        const csvContent = "data:text/csv;charset=utf-8," + [headers.join(','), ...csvData].join('\n');
+        
+        const encodedUri = encodeURI(csvContent);
+        const link = document.createElement("a");
+        link.setAttribute("href", encodedUri);
+        link.setAttribute("download", "Clinic_Patient_Directory.csv");
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+    };
+
     const handleRowClick = async (patient) => {
         if (patient.VisitCount === 1) {
             navigate(`/old-patient?id=${patient.LatestVisitID}`);
@@ -90,10 +129,46 @@ const PatientsList = () => {
 
     return (
         <div style={{ padding: '2rem', maxWidth: '1200px', margin: '0 auto' }}>
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '2rem' }}>
+            
+            {/* ORIGINAL HEADER (Untouched) */}
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.5rem' }}>
                 <h1 className="page-title" style={{ margin: 0, fontSize: '2rem', color: '#1e293b' }}>Patient Directory</h1>
                 <div style={{ color: 'var(--text-muted)', fontSize: '0.95rem', fontWeight: 500 }}>
                     Total Unique Patients: {patients.length}
+                </div>
+            </div>
+
+            {/* --- NEW SMART TOOLBAR (Fills the empty space creatively) --- */}
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '1rem', justifyContent: 'space-between', alignItems: 'center', backgroundColor: '#ffffff', padding: '1rem 1.5rem', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05)', border: '1px solid #e2e8f0', marginBottom: '2rem' }}>
+                
+                {/* Search Input */}
+                <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#f8fafc', borderRadius: '10px', padding: '0.6rem 1.2rem', minWidth: '320px', border: '1px solid #cbd5e1' }}>
+                    <svg width="18" height="18" fill="none" stroke="#64748b" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+                    <input 
+                        type="text" 
+                        placeholder="Search by name or mobile..." 
+                        value={searchTerm}
+                        onChange={(e) => setSearchTerm(e.target.value)}
+                        style={{ border: 'none', backgroundColor: 'transparent', outline: 'none', marginLeft: '12px', width: '100%', color: '#0f172a', fontSize: '0.95rem' }} 
+                    />
+                </div>
+
+                {/* Filter Tabs */}
+                <div style={{ display: 'flex', backgroundColor: '#f1f5f9', padding: '0.35rem', borderRadius: '10px' }}>
+                    <button onClick={() => setActiveTab('all')} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600, transition: 'all 0.2s', backgroundColor: activeTab === 'all' ? '#ffffff' : 'transparent', color: activeTab === 'all' ? '#0f172a' : '#64748b', boxShadow: activeTab === 'all' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>All Patients</button>
+                    <button onClick={() => setActiveTab('frequent')} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600, transition: 'all 0.2s', backgroundColor: activeTab === 'frequent' ? '#ffffff' : 'transparent', color: activeTab === 'frequent' ? '#0f172a' : '#64748b', boxShadow: activeTab === 'frequent' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>Frequent (2+ Visits)</button>
+                    <button onClick={() => setActiveTab('recent')} style={{ padding: '0.5rem 1rem', border: 'none', borderRadius: '8px', cursor: 'pointer', fontSize: '0.9rem', fontWeight: 600, transition: 'all 0.2s', backgroundColor: activeTab === 'recent' ? '#ffffff' : 'transparent', color: activeTab === 'recent' ? '#0f172a' : '#64748b', boxShadow: activeTab === 'recent' ? '0 1px 3px rgba(0,0,0,0.1)' : 'none' }}>Recent (30 Days)</button>
+                </div>
+
+                {/* Export Button & Dynamic Counter */}
+                <div style={{ display: 'flex', alignItems: 'center', gap: '1.25rem' }}>
+                    <div style={{ fontSize: '0.9rem', color: '#64748b', fontWeight: 500 }}>
+                        Showing: <span style={{ color: '#0f172a', fontWeight: 700 }}>{filteredPatients.length}</span>
+                    </div>
+                    <button onClick={handleExportCSV} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#10b981', color: 'white', border: 'none', padding: '0.6rem 1.2rem', borderRadius: '10px', fontWeight: '600', cursor: 'pointer', fontSize: '0.9rem', transition: 'background 0.2s' }} onMouseEnter={e => e.target.style.backgroundColor = '#059669'} onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}>
+                        <svg width="18" height="18" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4M7 10l5 5 5-5M12 15V3"></path></svg>
+                        Export CSV
+                    </button>
                 </div>
             </div>
 
@@ -110,7 +185,8 @@ const PatientsList = () => {
                         </tr>
                     </thead>
                     <tbody>
-                        {patients.map((p, index) => {
+                        {/* Notice we map over filteredPatients now! */}
+                        {filteredPatients.map((p, index) => {
                             const cleanName = formatName(p.PatientName);
                             const initials = getInitials(cleanName);
                             
@@ -119,7 +195,7 @@ const PatientsList = () => {
                                     key={index} 
                                     onClick={() => handleRowClick(p)}
                                     style={{ 
-                                        borderBottom: index !== patients.length - 1 ? '1px solid #f1f5f9' : 'none', 
+                                        borderBottom: index !== filteredPatients.length - 1 ? '1px solid #f1f5f9' : 'none', 
                                         cursor: 'pointer',
                                         transition: 'background-color 0.2s ease'
                                     }}
@@ -173,9 +249,9 @@ const PatientsList = () => {
                                 </tr>
                             );
                         })}
-                        {patients.length === 0 && (
+                        {filteredPatients.length === 0 && (
                             <tr>
-                                <td colSpan="5" style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontSize: '1.1rem' }}>No patients found in the database.</td>
+                                <td colSpan="5" style={{ padding: '3rem', textAlign: 'center', color: '#64748b', fontSize: '1.1rem' }}>No patients match your filters.</td>
                             </tr>
                         )}
                     </tbody>
