@@ -335,61 +335,68 @@ app.get('/api/patients/recent', authenticateToken, async (req, res) => {
     }
 });
 
-// --- API ENDPOINT: REAL-TIME DASHBOARD STATS ---
+// --- API ENDPOINT: GET DASHBOARD STATS & TRENDS ---
 app.get('/api/stats', authenticateToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
-        const tableName = `dbo.Pat_Master`;
+        
+        // This query securely fetches all the time-based data we need for math
+        const result = await pool.request().query(`
+            DECLARE @Today DATE = CAST(GETDATE() AS DATE);
+            DECLARE @Yesterday DATE = DATEADD(day, -1, @Today);
+            DECLARE @WeekStart DATE = DATEADD(day, -7, @Today);
+            DECLARE @LastWeekStart DATE = DATEADD(day, -14, @Today);
+            DECLARE @MonthStart DATE = DATEADD(day, 1-DAY(@Today), @Today);
+            DECLARE @LastMonthStart DATE = DATEADD(month, -1, @MonthStart);
 
-        // 1. Total Patients Today
-        const patientsTodayResult = await pool.request().query(`
-            SELECT COUNT(*) AS count 
-            FROM ${tableName} 
-            WHERE CAST(B_Date AS DATE) = CAST(GETDATE() AS DATE)
+            SELECT 
+                -- 1. Patients Today vs Yesterday
+                (SELECT COUNT(*) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) = @Today) AS PatientsToday,
+                (SELECT COUNT(*) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) = @Yesterday) AS PatientsYesterday,
+                
+                -- 2. New Registrations This Week vs Last Week
+                (SELECT COUNT(*) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) >= @WeekStart) AS RegThisWeek,
+                (SELECT COUNT(*) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) >= @LastWeekStart AND CAST(B_Date AS DATE) < @WeekStart) AS RegLastWeek,
+                
+                -- 3. Tests Prescribed This Week vs Last Week
+                (SELECT COUNT(*) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) >= @WeekStart AND B_Tests IS NOT NULL AND DATALENGTH(B_Tests) > 0) AS TestsThisWeek,
+                (SELECT COUNT(*) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) >= @LastWeekStart AND CAST(B_Date AS DATE) < @WeekStart AND B_Tests IS NOT NULL AND DATALENGTH(B_Tests) > 0) AS TestsLastWeek,
+                
+                -- 4. Revenue Today & This Month vs Last Month
+                ISNULL((SELECT SUM(B_TotalAmt) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) = @Today), 0) AS RevToday,
+                ISNULL((SELECT SUM(B_TotalAmt) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) >= @MonthStart), 0) AS RevThisMonth,
+                ISNULL((SELECT SUM(B_TotalAmt) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) >= @LastMonthStart AND CAST(B_Date AS DATE) < @MonthStart), 0) AS RevLastMonth
         `);
 
-        // 2. New Registrations
-        const newRegistrationsResult = await pool.request().query(`
-            SELECT COUNT(DISTINCT B_Mobile) AS count 
-            FROM ${tableName} 
-            WHERE CAST(B_Date AS DATE) = CAST(GETDATE() AS DATE) 
-            AND B_Mobile NOT IN (
-                SELECT B_Mobile FROM ${tableName} WHERE CAST(B_Date AS DATE) < CAST(GETDATE() AS DATE)
-            )
-        `);
+        const data = result.recordset[0];
 
-        // 3. Tests Prescribed
-        const testsPrescribedResult = await pool.request().query(`
-            SELECT COUNT(*) AS count 
-            FROM ${tableName} 
-            WHERE CAST(B_Date AS DATE) = CAST(GETDATE() AS DATE) 
-            AND B_Tests IS NOT NULL AND CAST(B_Tests AS VARCHAR(MAX)) != ''
-        `);
+        // --- SAFE MATH HELPER ---
+        // Prevents dividing by zero if there was no data in the previous period
+        const calcTrend = (current, previous) => {
+            if (previous === 0) return current > 0 ? 100 : 0; 
+            return (((current - previous) / previous) * 100).toFixed(1);
+        };
 
-        // 4. Daily Revenue
-        const dailyRevenueResult = await pool.request().query(`
-            SELECT ISNULL(SUM(B_TotalAmt), 0) AS total 
-            FROM ${tableName} 
-            WHERE CAST(B_Date AS DATE) = CAST(GETDATE() AS DATE)
-        `);
-
+        // Send the formatted stats and calculated trends to the frontend
         res.json({
             success: true,
             stats: {
-                patientsToday: patientsTodayResult.recordset[0].count || 0,
-                newRegistrations: newRegistrationsResult.recordset[0].count || 0,
-                testsPrescribed: testsPrescribedResult.recordset[0].count || 0,
-                dailyRevenue: dailyRevenueResult.recordset[0].total || 0
+                patientsToday: data.PatientsToday,
+                patientsTrend: calcTrend(data.PatientsToday, data.PatientsYesterday),
+                
+                newRegistrations: data.RegThisWeek,
+                registrationsTrend: calcTrend(data.RegThisWeek, data.RegLastWeek),
+                
+                testsPrescribed: data.TestsThisWeek,
+                testsTrend: calcTrend(data.TestsThisWeek, data.TestsLastWeek),
+                
+                dailyRevenue: data.RevToday,
+                revenueTrend: calcTrend(data.RevThisMonth, data.RevLastMonth)
             }
         });
 
     } catch (err) {
         console.error('Database error fetching stats:', err);
-        res.status(500).json({ success: false, message: 'Failed to fetch daily stats.' });
+        res.status(500).json({ success: false, message: 'Failed to fetch dashboard stats.' });
     }
-});
-
-// Start listening for requests
-app.listen(PORT, () => {
-    console.log(`Backend Server running securely on http://localhost:${PORT}`);
 });
