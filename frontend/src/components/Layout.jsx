@@ -100,18 +100,50 @@ const Layout = ({ children }) => {
             <main className="main-content">
                 
                 {/* --- TOP NAVIGATION --- */}
-                <header className="top-nav">
-                    <button className="hamburger-toggle" onClick={() => setIsMobileMenuOpen(true)}>
-                        <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18M3 6h18M3 18h18"></path></svg>
-                    </button>
+                <header className="top-nav" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     
+                    {/* Left Side: Hamburger Menu + New Profile Button */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                        <button className="hamburger-toggle" onClick={() => setIsMobileMenuOpen(true)}>
+                            <svg width="28" height="28" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 12h18M3 6h18M3 18h18"></path></svg>
+                        </button>
+
+                        {/* --- THE NEW PROFILE DROPDOWN BUTTON --- */}
+                        <div 
+                            onClick={() => handleNavClick('/profile')}
+                            style={{ 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                gap: '0.6rem', 
+                                cursor: 'pointer', 
+                                padding: '0.4rem 0.75rem', 
+                                borderRadius: '10px', 
+                                transition: 'background-color 0.2s ease',
+                                border: '1px solid transparent'
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f8fafc'; e.currentTarget.style.borderColor = '#e2e8f0'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.borderColor = 'transparent'; }}
+                        >
+                            <div style={{ width: '32px', height: '32px', backgroundColor: '#e0f2fe', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'hidden' }}>
+                                <svg width="22" height="22" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+                                    <circle cx="50" cy="35" r="16" fill="#fca5a5"/>
+                                    <path d="M20 100 Q 20 60 50 60 Q 80 60 80 100 Z" fill="#3b82f6"/>
+                                </svg>
+                            </div>
+                            <span style={{ fontWeight: '600', color: '#0f172a', fontSize: '0.95rem' }}>Dr. {doctorName}</span>
+                            <svg width="16" height="16" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                                <polyline points="6 9 12 15 18 9"></polyline>
+                            </svg>
+                        </div>
+                    </div>
+                    
+                    {/* Right Side: Links + Log Out */}
                     <div className="nav-right-group">
                         <nav className="nav-links">
                             <Link to="/home" className={location.pathname === '/home' ? 'active' : ''}>Home</Link>
                             <Link to="/patients" className={location.pathname === '/patients' ? 'active' : ''}>Patients</Link>
                             <a href="#">Reports</a>
                         </nav>
-                        {/* UPDATED: Button now opens the modal */}
                         <button className="user-profile-btn" onClick={() => setIsLogoutModalOpen(true)}>Log Out</button>
                     </div>
                 </header>
@@ -128,7 +160,6 @@ const Layout = ({ children }) => {
                             <h2 style={{ marginBottom: '0.75rem', color: 'var(--text-main)', fontSize: '1.5rem', fontWeight: 800 }}>Log Out</h2>
                             <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '1.05rem' }}>Are you sure you want to log out of your account?</p>
                             
-                            {/* UPDATED: Buttons now share 50% width each and text won't wrap */}
                             <div style={{ display: 'flex', gap: '1rem', width: '100%' }}>
                                 <button 
                                     className="btn-cancel" 

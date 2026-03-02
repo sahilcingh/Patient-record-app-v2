@@ -10,6 +10,7 @@ import Home from './pages/Home';
 import NewPatient from './pages/NewPatient';
 import OldPatient from './pages/OldPatient';
 import PatientsList from './pages/PatientsList'; 
+import Profile from './pages/Profile'; // <-- New Profile Import
 
 function App() {
   return (
@@ -23,6 +24,9 @@ function App() {
         <Route path="/new-patient" element={<Layout><NewPatient /></Layout>} />
         <Route path="/old-patient" element={<Layout><OldPatient /></Layout>} />
         <Route path="/patients" element={<Layout><PatientsList /></Layout>} />
+        
+        {/* <-- New Profile Route --> */}
+        <Route path="/profile" element={<Layout><Profile /></Layout>} />
       </Routes>
     </Router>
   );
