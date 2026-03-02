@@ -38,6 +38,32 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
+// --- API ENDPOINT: GET UNIQUE PATIENTS WITH VISIT COUNT ---
+app.get('/api/patients/unique', authenticateToken, async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        
+        // Groups by Mobile and Name, getting the latest visit ID and total visit count
+        const result = await pool.request().query(`
+            SELECT 
+                B_PName AS PatientName, 
+                B_Mobile AS Mobile, 
+                MAX(B_Date) AS LastVisitDate,
+                MAX(CAST(B_Sno AS INT)) AS LatestVisitID,
+                COUNT(B_Sno) AS VisitCount
+            FROM dbo.Pat_Master
+            WHERE B_PName IS NOT NULL AND B_PName != ''
+            GROUP BY B_PName, B_Mobile
+            ORDER BY LastVisitDate DESC, LatestVisitID DESC
+        `);
+
+        res.json({ success: true, patients: result.recordset });
+    } catch (err) {
+        console.error('Database error fetching unique patients:', err);
+        res.status(500).json({ success: false, message: 'Failed to fetch patients list.' });
+    }
+});
+
 // --- API ENDPOINT: LOGIN ---
 app.post('/api/login', async (req, res) => {
     const { doctorId, password } = req.body;
