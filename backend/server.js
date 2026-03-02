@@ -316,7 +316,7 @@ app.get('/api/patients/recent', authenticateToken, async (req, res) => {
         const tableName = `dbo.Pat_Master`;
 
         const result = await pool.request().query(`
-            SELECT TOP 7
+            SELECT TOP 6
                 B_Sno AS VisitID, 
                 B_PName AS PatientName, 
                 B_Date AS VisitDate
