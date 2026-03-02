@@ -1,12 +1,12 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-// 1. Make sure you import it at the top! (Adjust the path if your folder structure is different)
-import PatientsList from './pages/PatientsList'; 
+// Importing all components from your 'pages' directory
+import Login from './pages/Login';
 import Home from './pages/Home';
 import NewPatient from './pages/NewPatient';
 import OldPatient from './pages/OldPatient';
-// ... other imports ...
+import PatientsList from './pages/PatientsList'; 
 
 function App() {
   return (
@@ -17,9 +17,8 @@ function App() {
         <Route path="/new-patient" element={<NewPatient />} />
         <Route path="/old-patient" element={<OldPatient />} />
         
-        {/* 2. ADD THIS EXACT LINE HERE: */}
-        <Route path="/patient" element={<PatientsList />} />
-        
+        {/* The new Patients Directory route */}
+        <Route path="/patients" element={<PatientsList />} />
       </Routes>
     </Router>
   );
