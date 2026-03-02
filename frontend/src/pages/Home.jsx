@@ -24,7 +24,7 @@ const Home = () => {
     const [selectedPatient, setSelectedPatient] = useState(null);
     const [patientHistory, setPatientHistory] = useState([]);
 
-    // --- AUTHENTICATION HELPER ---
+    // --- HELPER FUNCTIONS ---
     const handleAuthError = (status) => {
         if (status === 401 || status === 403) {
             localStorage.removeItem('doctorToken');
@@ -32,6 +32,14 @@ const Home = () => {
             localStorage.removeItem('dbName');
             navigate('/');
         }
+    };
+
+    // Capitalizes the first letter of each word for clean formatting
+    const formatName = (name) => {
+        if (!name) return "Unknown";
+        return name.toLowerCase().split(' ').map(word => 
+            word.charAt(0).toUpperCase() + word.slice(1)
+        ).join(' ');
     };
 
     // --- FETCH DASHBOARD DATA (Stats & Recent Patients) ---
@@ -171,8 +179,9 @@ const Home = () => {
                             {searchResults.map((patient, index) => (
                                 <div key={index} className="search-result-item" onClick={() => handlePatientClick(patient)}>
                                     <div>
-                                        <div className="search-name">{patient.PatientName}</div>
-                                        <div className="search-sub">{patient.Mobile || 'No Mobile'} • {patient.FatherName || 'No Father Name'}</div>
+                                        {/* Apply formatName here */}
+                                        <div className="search-name">{formatName(patient.PatientName)}</div>
+                                        <div className="search-sub">{patient.Mobile || 'No Mobile'} • {formatName(patient.FatherName) || 'No Father Name'}</div>
                                     </div>
                                     <div style={{ color: 'var(--primary)', fontWeight: '600', fontSize: '0.9rem' }}>
                                         View Record →
@@ -207,13 +216,16 @@ const Home = () => {
                             recentPatients.map((patient, index) => {
                                 const dateObj = new Date(patient.VisitDate);
                                 const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${dateObj.getFullYear()}`;
-                                const initial = patient.PatientName ? patient.PatientName.charAt(0).toUpperCase() : '?';
+                                
+                                // Format the name and get the initial safely
+                                const cleanName = formatName(patient.PatientName);
+                                const initial = cleanName !== "Unknown" ? cleanName.charAt(0) : '?';
 
                                 return (
                                     <div key={index} className="list-item" onClick={() => handlePatientClick(patient)}>
                                         <div className="profile-col">
                                             <div className="avatar">{initial}</div>
-                                            <div className="item-name">{patient.PatientName}</div>
+                                            <div className="item-name">{cleanName}</div>
                                         </div>
                                         <div className="date-col">
                                             {formattedDate}
@@ -266,7 +278,8 @@ const Home = () => {
                 <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            <h2>{selectedPatient?.PatientName}'s Visit History</h2>
+                            {/* Apply formatName here */}
+                            <h2>{formatName(selectedPatient?.PatientName)}'s Visit History</h2>
                             <button className="close-btn" onClick={() => setIsModalOpen(false)}>×</button>
                         </div>
                         <div className="history-list">
