@@ -1,43 +1,46 @@
 /* src/css/new-patient.css */
 
 .page-title { 
-    font-size: 1.6rem; 
+    font-size: 2rem; 
     color: var(--text-main); 
-    margin-bottom: 0.5rem; 
+    margin-bottom: 1.5rem; 
     font-weight: 700; 
 }
 
 .form-card { 
     background: var(--surface); 
-    border-radius: 12px; 
-    padding: 1rem 1.5rem; /* Drastically squeezed padding */
-    box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); 
+    border-radius: 20px; 
+    padding: 3rem; /* Scaled up to match dashboard */
+    box-shadow: 0 10px 25px -5px rgba(0,0,0,0.03); 
     border: 1px solid var(--border-color); 
 }
 
 .form-section-title { 
-    font-size: 1.05rem; 
+    font-size: 1.25rem; 
     color: var(--text-main); 
     font-weight: 700; 
-    margin-bottom: 0.4rem; /* Tighter margin */
-    margin-top: 0.75rem; 
+    margin-bottom: 1.25rem; 
+    margin-top: 2rem; 
 }
 .form-section-title:first-child { margin-top: 0; }
 
-/* Tighter Form Grids */
-.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem 1.25rem; }
-.grid-4-address { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 0.5rem 1.25rem; }
-.grid-personal-row1 { display: grid; grid-template-columns: 2.2fr 1.2fr 0.8fr 1.2fr; gap: 0.5rem 1.25rem; }
-.grid-personal-row2 { display: grid; grid-template-columns: 2.2fr 1.6fr 1.6fr; gap: 0.5rem 1.25rem; }
+/* Form Grid Layouts */
+.grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 1.25rem 2rem; }
+.grid-4-address { display: grid; grid-template-columns: 2fr 1fr 1fr 1fr; gap: 1.25rem 2rem; }
 
-/* Compressed Input Fields */
+/* Personal Info Specific Grids */
+.grid-personal-row1 { display: grid; grid-template-columns: 2.2fr 1.2fr 0.8fr 1.2fr; gap: 1.25rem 2rem; }
+.grid-personal-row2 { display: grid; grid-template-columns: 2.2fr 1.6fr 1.6fr; gap: 1.25rem 2rem; }
+
+/* Soft Grey Input Fields */
 .input-grey { 
     width: 100%; 
-    background-color: #f8fafc; 
-    border: 1px solid #e2e8f0; 
-    padding: 0.5rem 0.85rem; /* Thinner height */
-    border-radius: 8px; 
-    font-size: 1rem; 
+    background-color: #f1f5f9; 
+    border: 2px solid transparent; 
+    padding: 1.1rem 1.25rem; 
+    border-radius: 12px; 
+    font-size: 1.1rem; 
+    color: var(--text-main); 
     outline: none; 
     transition: all 0.2s ease; 
     font-family: inherit;
@@ -50,44 +53,45 @@
     box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.1); 
 }
 
-select.input-grey { appearance: auto; color: var(--text-main); cursor: pointer; }
+select.input-grey { appearance: auto; color: #64748b; cursor: pointer; }
+select.input-grey:focus, select.input-grey:valid { color: var(--text-main); }
 
-/* Pulled-up Form Actions */
-.form-actions { display: flex; gap: 1rem; margin-top: 0.75rem; }
+/* Form Buttons */
+.form-actions { display: flex; gap: 1rem; margin-top: 3.5rem; }
 
 .btn-save { 
     background-color: var(--primary); 
     color: white; 
     border: none; 
-    padding: 0.75rem 2rem; 
-    border-radius: 8px; 
+    padding: 1rem 2.5rem; 
+    border-radius: 12px; 
     font-weight: 700; 
-    font-size: 1.05rem; 
+    font-size: 1.1rem; 
     cursor: pointer; 
     transition: background 0.2s; 
     font-family: inherit;
-    flex: 1;
 }
-.btn-save:hover { background-color: #059669; }
+.btn-save:hover { background-color: var(--primary-hover); }
 
 .btn-cancel { 
     background-color: #94a3b8; 
     color: white; 
     border: none; 
-    padding: 0.75rem 2rem; 
-    border-radius: 8px; 
+    padding: 1rem 2.5rem; 
+    border-radius: 12px; 
     font-weight: 700; 
-    font-size: 1.05rem; 
+    font-size: 1.1rem; 
     cursor: pointer; 
     transition: background 0.2s; 
     font-family: inherit;
-    flex: 1;
 }
 .btn-cancel:hover { background-color: #64748b; }
 
 /* Mobile Adjustments */
 @media (max-width: 768px) {
     .page-title { font-size: 1.5rem; text-align: center; }
-    .grid-2, .grid-4-address, .grid-personal-row1, .grid-personal-row2 { grid-template-columns: 1fr; gap: 0.75rem; }
-    .form-actions { flex-direction: column; }
+    .form-card { padding: 1.5rem 1.25rem; }
+    .grid-2, .grid-4-address, .grid-personal-row1, .grid-personal-row2 { grid-template-columns: 1fr; gap: 1rem; }
+    .form-actions { flex-direction: column; margin-top: 2rem; }
+    .btn-save, .btn-cancel { width: 100%; }
 }
