@@ -42,7 +42,23 @@ const Home = () => {
         ).join(' ');
     };
 
-    // --- FETCH DASHBOARD DATA (Stats & Recent Patients) ---
+    // Extracts up to 2 initials for the avatar (e.g., "Prateep Sarkar" -> "PS")
+    const getInitials = (name) => {
+        if (!name || name === "Unknown") return "?";
+        const parts = name.trim().split(" ");
+        if (parts.length >= 2) {
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+        return name.substring(0, 2).toUpperCase();
+    };
+
+    // Cycles through specific colors to match your design mockup
+    const getAvatarColor = (index) => {
+        const colors = ['#facc15', '#10b981', '#64748b', '#f43f5e', '#fbbf24', '#3b82f6'];
+        return colors[index % colors.length];
+    };
+
+    // --- FETCH DASHBOARD DATA ---
     useEffect(() => {
         const token = localStorage.getItem('doctorToken');
         if (!token) {
@@ -179,7 +195,6 @@ const Home = () => {
                             {searchResults.map((patient, index) => (
                                 <div key={index} className="search-result-item" onClick={() => handlePatientClick(patient)}>
                                     <div>
-                                        {/* Apply formatName here */}
                                         <div className="search-name">{formatName(patient.PatientName)}</div>
                                         <div className="search-sub">{patient.Mobile || 'No Mobile'} • {formatName(patient.FatherName) || 'No Father Name'}</div>
                                     </div>
@@ -205,30 +220,50 @@ const Home = () => {
                 {/* --- RECENT PATIENTS LIST --- */}
                 <div className="data-card dynamic-height-card">
                     <div className="card-header">Recent Patients</div>
-                    <div className="list-headers">
-                        <span>Profile</span>
-                        <span>Last visit</span>
+                    <div className="list-headers" style={{ borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '0.5rem' }}>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '500' }}>Profile</span>
+                        <span style={{ color: 'var(--text-muted)', fontSize: '0.9rem', fontWeight: '500' }}>Last visit</span>
                     </div>
                     <div>
                         {recentPatients.length === 0 ? (
                             <div style={{ padding: '2rem', textAlign: 'center', color: 'var(--text-muted)' }}>No recent patients found.</div>
                         ) : (
                             recentPatients.map((patient, index) => {
+                                // Format the Date (e.g., 21 Feb, 2026)
                                 const dateObj = new Date(patient.VisitDate);
-                                const formattedDate = `${String(dateObj.getDate()).padStart(2, '0')}-${String(dateObj.getMonth() + 1).padStart(2, '0')}-${dateObj.getFullYear()}`;
+                                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                                const formattedDate = `${dateObj.getDate()} ${monthNames[dateObj.getMonth()]}, ${dateObj.getFullYear()}`;
                                 
-                                // Format the name and get the initial safely
+                                // Clean up the name and get initials
                                 const cleanName = formatName(patient.PatientName);
-                                const initial = cleanName !== "Unknown" ? cleanName.charAt(0) : '?';
+                                const initials = getInitials(cleanName);
 
                                 return (
-                                    <div key={index} className="list-item" onClick={() => handlePatientClick(patient)}>
-                                        <div className="profile-col">
-                                            <div className="avatar">{initial}</div>
-                                            <div className="item-name">{cleanName}</div>
+                                    <div key={index} className="list-item" onClick={() => handlePatientClick(patient)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem 0', borderBottom: index !== recentPatients.length - 1 ? '1px solid #f1f5f9' : 'none', cursor: 'pointer' }}>
+                                        <div className="profile-col" style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
+                                            {/* Colorful Initials Avatar */}
+                                            <div className="avatar" style={{ backgroundColor: getAvatarColor(index), color: 'white', fontWeight: 'bold', width: '42px', height: '42px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem' }}>
+                                                {initials}
+                                            </div>
+                                            {/* Name and S.No */}
+                                            <div>
+                                                <div className="item-name" style={{ fontWeight: '700', color: 'var(--text-main)', fontSize: '1.05rem', marginBottom: '0.15rem' }}>
+                                                    {cleanName}
+                                                </div>
+                                                <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+                                                    S.No: {patient.VisitID}
+                                                </div>
+                                            </div>
                                         </div>
-                                        <div className="date-col">
-                                            {formattedDate}
+                                        
+                                        {/* Date Details */}
+                                        <div className="date-col" style={{ textAlign: 'right' }}>
+                                            <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', marginBottom: '0.15rem' }}>
+                                                Last visit
+                                            </div>
+                                            <div style={{ fontWeight: '500', color: 'var(--text-main)', fontSize: '0.95rem' }}>
+                                                {formattedDate}
+                                            </div>
                                         </div>
                                     </div>
                                 )
@@ -278,14 +313,14 @@ const Home = () => {
                 <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
                     <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <div className="modal-header">
-                            {/* Apply formatName here */}
                             <h2>{formatName(selectedPatient?.PatientName)}'s Visit History</h2>
                             <button className="close-btn" onClick={() => setIsModalOpen(false)}>×</button>
                         </div>
                         <div className="history-list">
                             {patientHistory.map((visit, index) => {
                                 const vDate = new Date(visit.VisitDate);
-                                const formattedVDate = `${String(vDate.getDate()).padStart(2, '0')}-${String(vDate.getMonth() + 1).padStart(2, '0')}-${vDate.getFullYear()}`;
+                                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                                const formattedVDate = `${vDate.getDate()} ${monthNames[vDate.getMonth()]}, ${vDate.getFullYear()}`;
                                 
                                 return (
                                     <div 
