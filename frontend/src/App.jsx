@@ -1,10 +1,10 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-// Import your Layout component (This brings back the sidebar!)
+// Import your Layout component
 import Layout from './components/Layout'; 
 
-// Importing all components from your 'pages' directory
+// Import all pages
 import Login from './pages/Login';
 import Home from './pages/Home';
 import NewPatient from './pages/NewPatient';
@@ -15,16 +15,14 @@ function App() {
   return (
     <Router>
       <Routes>
-        {/* Login sits outside the layout (no sidebar on login screen) */}
+        {/* Login has no sidebar */}
         <Route path="/" element={<Login />} />
         
-        {/* All other pages sit inside the Layout (sidebar + constrained width) */}
-        <Route element={<Layout />}>
-            <Route path="/home" element={<Home />} />
-            <Route path="/new-patient" element={<NewPatient />} />
-            <Route path="/old-patient" element={<OldPatient />} />
-            <Route path="/patients" element={<PatientsList />} />
-        </Route>
+        {/* Wrap each individual page explicitly in the Layout component */}
+        <Route path="/home" element={<Layout><Home /></Layout>} />
+        <Route path="/new-patient" element={<Layout><NewPatient /></Layout>} />
+        <Route path="/old-patient" element={<Layout><OldPatient /></Layout>} />
+        <Route path="/patients" element={<Layout><PatientsList /></Layout>} />
       </Routes>
     </Router>
   );
