@@ -404,6 +404,35 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
 app.get('/', (req, res) => {
     res.status(200).send('Backend is awake and running!');
 });
+// Basic root route (already existed)
+app.get('/', (req, res) => {
+    res.status(200).send('Backend is awake and running!');
+});
+
+// 🔥 NEW PRODUCTION HEALTH CHECK (For cron monitoring)
+app.get('/health', async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        await pool.request().query('SELECT 1');
+
+        res.status(200).json({
+            status: "OK",
+            database: "Connected",
+            service: "Patient Record Backend",
+            timestamp: new Date()
+        });
+
+    } catch (err) {
+        console.error("Health check failed:", err);
+
+        res.status(500).json({
+            status: "ERROR",
+            database: "Disconnected",
+            timestamp: new Date()
+        });
+    }
+});
+
 
 // --- START THE SERVER ---
 app.listen(PORT, () => {
