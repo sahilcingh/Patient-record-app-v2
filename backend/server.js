@@ -404,3 +404,8 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
 app.get('/', (req, res) => {
     res.status(200).send('Backend is awake and running!');
 });
+
+// --- START THE SERVER ---
+app.listen(PORT, () => {
+    console.log(`Server is awake and running on port ${PORT}`);
+});
