@@ -70,13 +70,12 @@ const About = () => {
             >
               {/* High-quality medical banner image */}
               <img
-                src="https://images.unsplash.com/photo-1582719478250-c89cae4dc85b?auto=format&fit=crop&w=1200&q=80"
+                src="https://images.unsplash.com/photo-1516549655169-df83a0774514?auto=format&fit=crop&w=1200&q=80"
                 alt="Modern Clinic Team"
                 style={{ width: "100%", height: "100%", objectFit: "cover" }}
                 onError={(e) => {
-                  // If the first image fails, it automatically falls back to this second one!
                   e.target.src =
-                    "https://images.unsplash.com/photo-1551076805-e18690c5e53b?auto=format&fit=crop&w=1200&q=80";
+                    "https://images.unsplash.com/photo-1581056771107-24ca5f033842?auto=format&fit=crop&w=1200&q=80";
                 }}
               />
             </div>
