@@ -400,3 +400,7 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to fetch dashboard stats.' });
     }
 });
+// --- HEALTH CHECK ROUTE (Keeps the server awake) ---
+app.get('/', (req, res) => {
+    res.status(200).send('Backend is awake and running!');
+});
