@@ -10,22 +10,28 @@ import Home from './pages/Home';
 import NewPatient from './pages/NewPatient';
 import OldPatient from './pages/OldPatient';
 import PatientsList from './pages/PatientsList'; 
-import Profile from './pages/Profile'; // <-- New Profile Import
+import Profile from './pages/Profile';
+
+// Import new public pages
+import About from './pages/About';
+import Contact from './pages/Contact';
+import Help from './pages/Help';
 
 function App() {
   return (
     <Router>
       <Routes>
-        {/* Login has no sidebar */}
+        {/* Public Pages (No Sidebar) */}
         <Route path="/" element={<Login />} />
+        <Route path="/about" element={<About />} />
+        <Route path="/contact" element={<Contact />} />
+        <Route path="/help" element={<Help />} />
         
-        {/* Wrap each individual page explicitly in the Layout component */}
+        {/* Authenticated Pages (Wrapped in Layout) */}
         <Route path="/home" element={<Layout><Home /></Layout>} />
         <Route path="/new-patient" element={<Layout><NewPatient /></Layout>} />
         <Route path="/old-patient" element={<Layout><OldPatient /></Layout>} />
         <Route path="/patients" element={<Layout><PatientsList /></Layout>} />
-        
-        {/* <-- New Profile Route --> */}
         <Route path="/profile" element={<Layout><Profile /></Layout>} />
       </Routes>
     </Router>

@@ -87,9 +87,9 @@ const Login = () => {
                 <div className="login-form-section">
                     
                     <div className="login-nav">
-                        <span>About</span>
-                        <span>Contact</span>
-                        <span>Help</span>
+                        <span onClick={() => navigate('/about')}>About</span>
+                        <span onClick={() => navigate('/contact')}>Contact</span>
+                        <span onClick={() => navigate('/help')}>Help</span>
                         <button className="nav-btn">Book Appointment</button>
                     </div>
 
