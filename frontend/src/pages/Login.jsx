@@ -5,6 +5,11 @@ const Login = () => {
     const [doctorId, setDoctorId] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    
+    // NEW: States for our custom Error Modal
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+    
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -32,19 +37,84 @@ const Login = () => {
                 localStorage.setItem('dbName', data.dbName);
                 navigate('/home');
             } else {
-                alert(data.message);
+                // REMOVED alert(data.message);
+                // Trigger our custom Error Modal instead!
+                setErrorMessage(data.message || "Invalid credentials. Please try again.");
+                setShowErrorModal(true);
                 setLoading(false);
             }
         } catch (error) {
             console.error("Login request failed:", error);
-            alert("Failed to connect to the server. Please ensure the backend is running.");
+            // Show modal for network errors too
+            setErrorMessage("Failed to connect to the server. Please ensure the backend is running.");
+            setShowErrorModal(true);
             setLoading(false);
         }
+    };
+
+    // Common overlay style for the modal
+    const overlayStyle = {
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 9999,
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
     };
 
     return (
         <div className="login-page-wrapper">
             
+            {/* Inline styles for modal animation */}
+            <style>
+                {`
+                    @keyframes popIn {
+                        0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+                        100% { opacity: 1; transform: scale(1) translateY(0); }
+                    }
+                `}
+            </style>
+
+            {/* --- CUSTOM ERROR MODAL --- */}
+            {showErrorModal && (
+                <div style={overlayStyle}>
+                    <div style={{ backgroundColor: '#ffffff', padding: '2.5rem', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center', maxWidth: '400px', width: '90%', animation: 'popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                        {/* Red Warning Icon */}
+                        <div style={{ width: '70px', height: '70px', backgroundColor: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                            <svg width="36" height="36" fill="none" stroke="#ef4444" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                        </div>
+                        
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontSize: '1.5rem', fontWeight: 800 }}>Access Denied</h3>
+                        <p style={{ margin: '0 0 2rem 0', color: '#64748b', fontSize: '1rem', lineHeight: '1.5' }}>
+                            {errorMessage}
+                        </p>
+                        
+                        <button
+                            onClick={() => setShowErrorModal(false)}
+                            style={{ 
+                                padding: '0.85rem 2rem', 
+                                backgroundColor: '#f1f5f9', 
+                                color: '#0f172a', 
+                                border: '1px solid #cbd5e1', 
+                                borderRadius: '12px', 
+                                fontWeight: 700, 
+                                fontSize: '1.05rem', 
+                                cursor: 'pointer', 
+                                width: '100%',
+                                transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={e => e.target.style.backgroundColor = '#e2e8f0'}
+                            onMouseLeave={e => e.target.style.backgroundColor = '#f1f5f9'}
+                        >
+                            Try Again
+                        </button>
+                    </div>
+                </div>
+            )}
+
             {/* Animated Background Glowing Orbs */}
             <div className="bg-shape shape-1"></div>
             <div className="bg-shape shape-2"></div>
@@ -99,7 +169,6 @@ const Login = () => {
 
                     <form onSubmit={handleLogin}>
                         <div className="input-wrapper">
-                            {/* FIXED: Added viewBox="0 0 24 24" */}
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
                                 <circle cx="12" cy="7" r="4"></circle>
@@ -115,7 +184,6 @@ const Login = () => {
                         </div>
                         
                         <div className="input-wrapper">
-                            {/* FIXED: Added viewBox="0 0 24 24" */}
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
                                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
@@ -137,7 +205,7 @@ const Login = () => {
                     </form>
 
                     <div className="form-footer">
-                        Don't have an account yet? <a>Contact Admin</a>
+                        Don't have an account yet? <a onClick={() => navigate('/contact')}>Contact Admin</a>
                     </div>
                 </div>
             </div>
