@@ -5,6 +5,9 @@ const Profile = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     
+    // NEW: State to control our custom success popup
+    const [showSuccessModal, setShowSuccessModal] = useState(false);
+    
     // Profile State 
     const [formData, setFormData] = useState({
         doctorName: '',
@@ -28,10 +31,9 @@ const Profile = () => {
                 const data = await response.json();
 
                 if (data.success) {
-                    // Populate the form with the data from SQL Server
                     setFormData({
                         username: data.profile.Username || '',
-                        password: '', // Keep password blank for security
+                        password: '', 
                         confirmPassword: '',
                         doctorName: data.profile.DoctorName || '',
                         designation: data.profile.DoctorDesi || '',
@@ -58,7 +60,7 @@ const Profile = () => {
         e.preventDefault();
         
         if (formData.password && formData.password !== formData.confirmPassword) {
-            alert("Passwords do not match!");
+            alert("Passwords do not match!"); // Keeping error as simple alert for now
             return;
         }
 
@@ -78,12 +80,18 @@ const Profile = () => {
             const data = await response.json();
 
             if (data.success) {
-                alert("Profile saved successfully!");
-                // Optionally update the stored name if it changed
-                if (formData.doctorName) localStorage.setItem('doctorName', formData.doctorName);
+                // REMOVED native alert()
+                // Show our beautiful custom modal instead!
+                setShowSuccessModal(true);
                 
-                // Clear the password fields after a successful save
+                if (formData.doctorName) localStorage.setItem('doctorName', formData.doctorName);
                 setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+                
+                // Optional: Auto-close after 3 seconds
+                setTimeout(() => {
+                    setShowSuccessModal(false);
+                }, 3000);
+
             } else {
                 alert(data.message || "Failed to save profile.");
             }
@@ -125,8 +133,78 @@ const Profile = () => {
     };
 
     return (
-        <div style={{ padding: '2.5rem', maxWidth: '1100px', margin: '0 auto' }}>
+        <div style={{ padding: '2.5rem', maxWidth: '1100px', margin: '0 auto', position: 'relative' }}>
             
+            {/* Inline styles for modal animation */}
+            <style>
+                {`
+                    @keyframes popIn {
+                        0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+                        100% { opacity: 1; transform: scale(1) translateY(0); }
+                    }
+                `}
+            </style>
+
+            {/* --- CUSTOM SUCCESS MODAL --- */}
+            {showSuccessModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+                    backgroundColor: 'rgba(15, 23, 42, 0.4)', // Dark semi-transparent backdrop
+                    backdropFilter: 'blur(4px)', // Nice blur effect
+                    zIndex: 9999,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center'
+                }}>
+                    <div style={{
+                        backgroundColor: '#ffffff', 
+                        padding: '2.5rem', 
+                        borderRadius: '20px',
+                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
+                        textAlign: 'center', 
+                        maxWidth: '400px', 
+                        width: '90%',
+                        animation: 'popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)' // Smooth spring animation
+                    }}>
+                        {/* Green Checkmark Circle */}
+                        <div style={{ 
+                            width: '70px', height: '70px', 
+                            backgroundColor: '#dcfce7', 
+                            borderRadius: '50%', 
+                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+                            margin: '0 auto 1.5rem auto' 
+                        }}>
+                            <svg width="36" height="36" fill="none" stroke="#10b981" viewBox="0 0 24 24" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M20 6L9 17l-5-5"></path>
+                            </svg>
+                        </div>
+                        
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontSize: '1.5rem', fontWeight: 800 }}>Success!</h3>
+                        <p style={{ margin: '0 0 2rem 0', color: '#64748b', fontSize: '1rem', lineHeight: '1.5' }}>
+                            Your profile changes have been saved to the database successfully.
+                        </p>
+                        
+                        <button
+                            onClick={() => setShowSuccessModal(false)}
+                            style={{ 
+                                padding: '0.85rem 2rem', 
+                                backgroundColor: '#10b981', 
+                                color: 'white', 
+                                border: 'none', 
+                                borderRadius: '12px', 
+                                fontWeight: 700, 
+                                fontSize: '1.05rem', 
+                                cursor: 'pointer', 
+                                width: '100%',
+                                transition: 'background-color 0.2s'
+                            }}
+                            onMouseEnter={e => e.target.style.backgroundColor = '#059669'}
+                            onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}
+                        >
+                            Awesome
+                        </button>
+                    </div>
+                </div>
+            )}
+
             <div style={{ marginBottom: '2.5rem' }}>
                 <h1 className="page-title" style={{ margin: 0, fontSize: '2rem', color: '#0f172a' }}>Settings & Profile</h1>
                 <p style={{ color: '#64748b', fontSize: '1rem', marginTop: '0.5rem' }}>Manage your account credentials and clinic information.</p>
