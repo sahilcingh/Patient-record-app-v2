@@ -146,7 +146,7 @@ const Layout = ({ children }) => {
                                     <path d="M20 100 Q 20 60 50 60 Q 80 60 80 100 Z" fill="#3b82f6"/>
                                 </svg>
                             </div>
-                            <span style={{ fontWeight: '600', color: '#0f172a', fontSize: '0.95rem' }}>Dr. {doctorName}</span>
+                            <span style={{ fontWeight: '600', color: '#0f172a', fontSize: '0.95rem' }}>{doctorName}</span>
                             <svg width="16" height="16" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
                                 <polyline points="6 9 12 15 18 9"></polyline>
                             </svg>

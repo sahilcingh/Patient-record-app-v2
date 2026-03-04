@@ -5,7 +5,8 @@ const Profile = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     
-    // NEW: State to control our custom success popup
+    // Modal States
+    const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     
     // Profile State 
@@ -55,15 +56,21 @@ const Profile = () => {
         setFormData(prev => ({ ...prev, [id]: value }));
     };
 
-    // --- SAVE DATA TO DATABASE ---
-    const handleSave = async (e) => {
+    // --- STEP 1: TRIGGER CONFIRMATION ---
+    const handleSaveRequest = (e) => {
         e.preventDefault();
         
         if (formData.password && formData.password !== formData.confirmPassword) {
-            alert("Passwords do not match!"); // Keeping error as simple alert for now
+            alert("Passwords do not match!"); 
             return;
         }
 
+        // Show confirmation popup instead of saving immediately
+        setShowConfirmModal(true);
+    };
+
+    // --- STEP 2: EXECUTE ACTUAL SAVE TO DATABASE ---
+    const executeSave = async () => {
         setLoading(true);
         
         try {
@@ -80,23 +87,23 @@ const Profile = () => {
             const data = await response.json();
 
             if (data.success) {
-                // REMOVED native alert()
-                // Show our beautiful custom modal instead!
-                setShowSuccessModal(true);
+                setShowConfirmModal(false); // Close confirmation
+                setShowSuccessModal(true);  // Show success!
                 
                 if (formData.doctorName) localStorage.setItem('doctorName', formData.doctorName);
                 setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
                 
-                // Optional: Auto-close after 3 seconds
                 setTimeout(() => {
                     setShowSuccessModal(false);
                 }, 3000);
 
             } else {
+                setShowConfirmModal(false);
                 alert(data.message || "Failed to save profile.");
             }
         } catch (error) {
             console.error("Save error:", error);
+            setShowConfirmModal(false);
             alert("Network error while saving.");
         } finally {
             setLoading(false);
@@ -124,18 +131,21 @@ const Profile = () => {
         display: 'flex', gap: '3rem', flexWrap: 'wrap'
     };
 
-    const leftColStyle = {
-        flex: '1', minWidth: '250px', maxWidth: '300px'
-    };
+    const leftColStyle = { flex: '1', minWidth: '250px', maxWidth: '300px' };
+    const rightColStyle = { flex: '2', minWidth: '300px' };
 
-    const rightColStyle = {
-        flex: '2', minWidth: '300px'
+    // Common overlay style for modals
+    const overlayStyle = {
+        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+        backdropFilter: 'blur(4px)',
+        zIndex: 9999,
+        display: 'flex', alignItems: 'center', justifyContent: 'center'
     };
 
     return (
         <div style={{ padding: '2.5rem', maxWidth: '1100px', margin: '0 auto', position: 'relative' }}>
             
-            {/* Inline styles for modal animation */}
             <style>
                 {`
                     @keyframes popIn {
@@ -145,60 +155,48 @@ const Profile = () => {
                 `}
             </style>
 
-            {/* --- CUSTOM SUCCESS MODAL --- */}
+            {/* --- CONFIRMATION MODAL --- */}
+            {showConfirmModal && (
+                <div style={overlayStyle}>
+                    <div style={{ backgroundColor: '#ffffff', padding: '2.5rem', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center', maxWidth: '400px', width: '90%', animation: 'popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                        <div style={{ width: '60px', height: '60px', backgroundColor: '#e0f2fe', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                            <svg width="30" height="30" fill="none" stroke="#0ea5e9" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <line x1="12" y1="8" x2="12" y2="12"></line>
+                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                            </svg>
+                        </div>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontSize: '1.4rem', fontWeight: 800 }}>Confirm Changes</h3>
+                        <p style={{ margin: '0 0 2rem 0', color: '#64748b', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                            Are you sure you want to save these updates to your profile and clinic settings?
+                        </p>
+                        
+                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
+                            <button onClick={() => setShowConfirmModal(false)} disabled={loading} style={{ flex: 1, padding: '0.8rem', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '10px', fontWeight: 600, cursor: 'pointer', transition: 'background-color 0.2s' }}>
+                                Cancel
+                            </button>
+                            <button onClick={executeSave} disabled={loading} style={{ flex: 1, padding: '0.8rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 600, cursor: 'pointer', transition: 'background-color 0.2s' }}>
+                                {loading ? 'Saving...' : 'Yes, Save'}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
+            {/* --- SUCCESS MODAL --- */}
             {showSuccessModal && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-                    backgroundColor: 'rgba(15, 23, 42, 0.4)', // Dark semi-transparent backdrop
-                    backdropFilter: 'blur(4px)', // Nice blur effect
-                    zIndex: 9999,
-                    display: 'flex', alignItems: 'center', justifyContent: 'center'
-                }}>
-                    <div style={{
-                        backgroundColor: '#ffffff', 
-                        padding: '2.5rem', 
-                        borderRadius: '20px',
-                        boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)',
-                        textAlign: 'center', 
-                        maxWidth: '400px', 
-                        width: '90%',
-                        animation: 'popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)' // Smooth spring animation
-                    }}>
-                        {/* Green Checkmark Circle */}
-                        <div style={{ 
-                            width: '70px', height: '70px', 
-                            backgroundColor: '#dcfce7', 
-                            borderRadius: '50%', 
-                            display: 'flex', alignItems: 'center', justifyContent: 'center', 
-                            margin: '0 auto 1.5rem auto' 
-                        }}>
+                <div style={overlayStyle}>
+                    <div style={{ backgroundColor: '#ffffff', padding: '2.5rem', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center', maxWidth: '400px', width: '90%', animation: 'popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                        <div style={{ width: '70px', height: '70px', backgroundColor: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
                             <svg width="36" height="36" fill="none" stroke="#10b981" viewBox="0 0 24 24" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M20 6L9 17l-5-5"></path>
                             </svg>
                         </div>
-                        
                         <h3 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontSize: '1.5rem', fontWeight: 800 }}>Success!</h3>
                         <p style={{ margin: '0 0 2rem 0', color: '#64748b', fontSize: '1rem', lineHeight: '1.5' }}>
                             Your profile changes have been saved to the database successfully.
                         </p>
-                        
-                        <button
-                            onClick={() => setShowSuccessModal(false)}
-                            style={{ 
-                                padding: '0.85rem 2rem', 
-                                backgroundColor: '#10b981', 
-                                color: 'white', 
-                                border: 'none', 
-                                borderRadius: '12px', 
-                                fontWeight: 700, 
-                                fontSize: '1.05rem', 
-                                cursor: 'pointer', 
-                                width: '100%',
-                                transition: 'background-color 0.2s'
-                            }}
-                            onMouseEnter={e => e.target.style.backgroundColor = '#059669'}
-                            onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}
-                        >
+                        <button onClick={() => setShowSuccessModal(false)} style={{ padding: '0.85rem 2rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 700, fontSize: '1.05rem', cursor: 'pointer', width: '100%' }}>
                             Awesome
                         </button>
                     </div>
@@ -210,7 +208,7 @@ const Profile = () => {
                 <p style={{ color: '#64748b', fontSize: '1rem', marginTop: '0.5rem' }}>Manage your account credentials and clinic information.</p>
             </div>
 
-            <form onSubmit={handleSave}>
+            <form onSubmit={handleSaveRequest}>
                 
                 {/* --- ACCOUNT CREDENTIALS CARD --- */}
                 <div style={cardStyle}>
@@ -285,23 +283,11 @@ const Profile = () => {
 
                 {/* --- ACTIONS --- */}
                 <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem', paddingBottom: '2rem' }}>
-                    <button 
-                        type="button" 
-                        onClick={() => navigate('/home')} 
-                        style={{ padding: '0.85rem 1.75rem', borderRadius: '10px', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: '0.95rem', transition: 'background 0.2s' }}
-                        onMouseEnter={e => e.target.style.backgroundColor = '#e2e8f0'}
-                        onMouseLeave={e => e.target.style.backgroundColor = '#f1f5f9'}
-                    >
+                    <button type="button" onClick={() => navigate('/home')} style={{ padding: '0.85rem 1.75rem', borderRadius: '10px', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: '0.95rem' }}>
                         Cancel
                     </button>
-                    <button 
-                        type="submit" 
-                        disabled={loading} 
-                        style={{ padding: '0.85rem 2rem', borderRadius: '10px', backgroundColor: '#10b981', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: '0.95rem', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.2)', transition: 'background 0.2s' }}
-                        onMouseEnter={e => e.target.style.backgroundColor = '#059669'}
-                        onMouseLeave={e => e.target.style.backgroundColor = '#10b981'}
-                    >
-                        {loading ? 'Saving...' : 'Save Profile Changes'}
+                    <button type="submit" disabled={loading} style={{ padding: '0.85rem 2rem', borderRadius: '10px', backgroundColor: '#10b981', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: '0.95rem', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.2)' }}>
+                        Save Profile Changes
                     </button>
                 </div>
 
