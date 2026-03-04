@@ -74,7 +74,7 @@ const Layout = ({ children }) => {
                         </svg>
                     </div>
                     {/* --- DYNAMIC DOCTOR NAME --- */}
-                    <h2 className="welcome-text">Welcome back,<br/>Dr. {doctorName}.</h2>
+                    <h2 className="welcome-text">Welcome back,<br/>{doctorName}.</h2>
                 </div>
 
                 <div className="quick-links-container">

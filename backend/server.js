@@ -335,6 +335,76 @@ app.get('/api/patients/recent', authenticateToken, async (req, res) => {
     }
 });
 
+// --- API ENDPOINT: GET DOCTOR PROFILE ---
+app.get('/api/profile', authenticateToken, async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        
+        // We use req.user.userId from the JWT token to ensure we get the logged-in doctor
+        const result = await pool.request()
+            .input('userId', sql.Int, req.user.userId)
+            .query(`
+                SELECT Username, DoctorName, DoctorDesi, CompName, ClinicAddress, ClinicTimings
+                FROM dbo.Pat_User
+                WHERE UserID = @userId
+            `);
+
+        if (result.recordset.length > 0) {
+            res.json({ success: true, profile: result.recordset[0] });
+        } else {
+            res.status(404).json({ success: false, message: 'Profile not found' });
+        }
+    } catch (err) {
+        console.error('Database error fetching profile:', err);
+        res.status(500).json({ success: false, message: 'Failed to fetch profile data.' });
+    }
+});
+
+// --- API ENDPOINT: UPDATE DOCTOR PROFILE ---
+app.put('/api/profile', authenticateToken, async (req, res) => {
+    // These names match the formData object in your React frontend
+    const { username, password, doctorName, designation, clinicName, clinicAddress, clinicTimings } = req.body;
+
+    try {
+        const pool = await sql.connect(dbConfig);
+        const request = pool.request();
+        
+        request.input('userId', sql.Int, req.user.userId);
+        request.input('username', sql.VarChar, username || '');
+        request.input('doctorName', sql.VarChar, doctorName || '');
+        request.input('doctorDesi', sql.VarChar, designation || ''); // Maps to DoctorDesi
+        request.input('compName', sql.VarChar, clinicName || '');    // Maps to CompName
+        request.input('clinicAddress', sql.VarChar, clinicAddress || '');
+        request.input('clinicTimings', sql.VarChar, clinicTimings || '');
+
+        // Base update query
+        let query = `
+            UPDATE dbo.Pat_User
+            SET Username = @username,
+                DoctorName = @doctorName,
+                DoctorDesi = @doctorDesi,
+                CompName = @compName,
+                ClinicAddress = @clinicAddress,
+                ClinicTimings = @clinicTimings
+        `;
+
+        // Only update the password if the user actually typed a new one
+        if (password && password.trim() !== '') {
+            request.input('password', sql.VarChar, password);
+            query += `, Password = @password`;
+        }
+
+        query += ` WHERE UserID = @userId`;
+
+        await request.query(query);
+
+        res.json({ success: true, message: 'Profile updated successfully!' });
+    } catch (err) {
+        console.error('Database error updating profile:', err);
+        res.status(500).json({ success: false, message: 'Failed to update profile.' });
+    }
+});
+
 // --- API ENDPOINT: GET DASHBOARD STATS & TRENDS ---
 app.get('/api/stats', authenticateToken, async (req, res) => {
     try {

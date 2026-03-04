@@ -5,9 +5,10 @@ const Profile = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
     
-    // Profile State
+    // Profile State 
     const [formData, setFormData] = useState({
         doctorName: '',
+        designation: '', 
         username: '',
         password: '',
         confirmPassword: '',
@@ -16,10 +17,35 @@ const Profile = () => {
         clinicTimings: ''
     });
 
-    // Mock fetch on load (Will connect to backend later)
+    // --- LOAD DATA ON MOUNT ---
     useEffect(() => {
-        const storedName = localStorage.getItem('doctorName') || '';
-        setFormData(prev => ({ ...prev, doctorName: storedName }));
+        const fetchProfile = async () => {
+            try {
+                const token = localStorage.getItem('doctorToken');
+                const response = await fetch('https://patient-record-app-drly.onrender.com/api/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                const data = await response.json();
+
+                if (data.success) {
+                    // Populate the form with the data from SQL Server
+                    setFormData({
+                        username: data.profile.Username || '',
+                        password: '', // Keep password blank for security
+                        confirmPassword: '',
+                        doctorName: data.profile.DoctorName || '',
+                        designation: data.profile.DoctorDesi || '',
+                        clinicName: data.profile.CompName || '',
+                        clinicAddress: data.profile.ClinicAddress || '',
+                        clinicTimings: data.profile.ClinicTimings || ''
+                    });
+                }
+            } catch (error) {
+                console.error("Failed to load profile", error);
+            }
+        };
+
+        fetchProfile();
     }, []);
 
     const handleChange = (e) => {
@@ -27,6 +53,7 @@ const Profile = () => {
         setFormData(prev => ({ ...prev, [id]: value }));
     };
 
+    // --- SAVE DATA TO DATABASE ---
     const handleSave = async (e) => {
         e.preventDefault();
         
@@ -37,11 +64,35 @@ const Profile = () => {
 
         setLoading(true);
         
-        // TODO: Backend PUT request will go here
-        setTimeout(() => {
-            alert("Profile frontend ready! We will connect this to the database next.");
+        try {
+            const token = localStorage.getItem('doctorToken');
+            const response = await fetch('https://patient-record-app-drly.onrender.com/api/profile', {
+                method: 'PUT',
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+
+            if (data.success) {
+                alert("Profile saved successfully!");
+                // Optionally update the stored name if it changed
+                if (formData.doctorName) localStorage.setItem('doctorName', formData.doctorName);
+                
+                // Clear the password fields after a successful save
+                setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
+            } else {
+                alert(data.message || "Failed to save profile.");
+            }
+        } catch (error) {
+            console.error("Save error:", error);
+            alert("Network error while saving.");
+        } finally {
             setLoading(false);
-        }, 1000);
+        }
     };
 
     // --- SHARED STYLES ---
@@ -113,14 +164,18 @@ const Profile = () => {
                     <div style={leftColStyle}>
                         <h2 style={{ fontSize: '1.15rem', color: '#0f172a', margin: '0 0 0.5rem 0' }}>Personal Information</h2>
                         <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
-                            Your name as it will appear across the dashboard and in the top navigation bar.
+                            Your name and professional designation as it will appear across the dashboard and on patient prescriptions.
                         </p>
                     </div>
                     
-                    <div style={rightColStyle}>
+                    <div style={{ ...rightColStyle, display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
                         <div>
                             <label style={labelStyle}>Doctor's Full Name</label>
                             <input type="text" id="doctorName" value={formData.doctorName} onChange={handleChange} placeholder="e.g., S.S. Gupta" style={inputStyle} required />
+                        </div>
+                        <div>
+                            <label style={labelStyle}>Designation & Qualifications</label>
+                            <input type="text" id="designation" value={formData.designation} onChange={handleChange} placeholder="e.g., M.D. (Homoeo) Psychiatrist" style={inputStyle} />
                         </div>
                     </div>
                 </div>
