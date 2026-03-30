@@ -1,7 +1,7 @@
 import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 
-// Import your Layout component
+// Import your old Layout component (only used for old-patient now)
 import Layout from './components/Layout'; 
 
 // Import all pages
@@ -27,14 +27,15 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/help" element={<Help />} />
         
-        {/* --- NEW PAGES (These have their own built-in sidebars now) --- */}
-        {/* DO NOT wrap these in <Layout> */}
+        {/* --- NEW UPGRADED PAGES --- */}
+        {/* These have their own built-in sidebars now! DO NOT wrap in <Layout> */}
         <Route path="/home" element={<Home />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/patients" element={<PatientsList />} />
+        <Route path="/new-patient" element={<NewPatient />} />
 
-        {/* --- OLD PAGES (Still using the old Layout wrapper for now) --- */}
-        <Route path="/new-patient" element={<Layout><NewPatient /></Layout>} />
+        {/* --- OLD PAGES --- */}
+        {/* Still using the old Layout wrapper until we upgrade it */}
         <Route path="/old-patient" element={<Layout><OldPatient /></Layout>} />
       </Routes>
     </Router>
