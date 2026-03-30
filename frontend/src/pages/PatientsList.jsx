@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../css/dashboard.css';
-import '../css/patients.css'; // We will create this next!
+import '../css/patients.css'; 
 
 const PatientsList = () => {
     const navigate = useNavigate();
@@ -20,9 +20,35 @@ const PatientsList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('all'); 
     
-    // Pagination States
+    // --- DYNAMIC PAGINATION ENGINE ---
     const [currentPage, setCurrentPage] = useState(1);
-    const itemsPerPage = 5;
+    const [itemsPerPage, setItemsPerPage] = useState(5); // Default fallback
+    const listContainerRef = useRef(null); // Reference to measure available height
+
+    useEffect(() => {
+        const calculateItemsPerPage = () => {
+            if (listContainerRef.current) {
+                // 1. Measure the exact pixel height available inside the list container
+                const availableHeight = listContainerRef.current.clientHeight;
+                
+                // 2. Estimate row height (Padding + Content + Gap ≈ 82px)
+                const estimatedRowHeight = 82; 
+                
+                // 3. Calculate how many whole rows can fit perfectly
+                const maxRowsThatFit = Math.floor(availableHeight / estimatedRowHeight);
+                
+                // Ensure we always show at least 3 rows, even on tiny screens
+                setItemsPerPage(Math.max(3, maxRowsThatFit));
+            }
+        };
+
+        // Run calculation immediately on load
+        calculateItemsPerPage();
+        
+        // Recalculate anytime the user resizes their browser window
+        window.addEventListener('resize', calculateItemsPerPage);
+        return () => window.removeEventListener('resize', calculateItemsPerPage);
+    }, []);
 
     // Modal States
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -37,7 +63,6 @@ const PatientsList = () => {
 
         const fetchData = async () => {
             try {
-                // Fetch Doctor Profile for Sidebar
                 const profileRes = await fetch('https://patient-record-app-drly.onrender.com/api/profile', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -51,7 +76,6 @@ const PatientsList = () => {
                     }
                 }
 
-                // Fetch Patients
                 const patientsRes = await fetch('https://patient-record-app-drly.onrender.com/api/patients/unique', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -72,29 +96,33 @@ const PatientsList = () => {
     // --- FILTER LOGIC ---
     const filteredPatients = useMemo(() => {
         return patients.filter(p => {
-            // 1. Search Logic
             const matchesSearch = (p.PatientName?.toLowerCase() || '').includes(searchTerm.toLowerCase()) || 
                                   (p.Mobile || '').includes(searchTerm);
             if (!matchesSearch) return false;
 
-            // 2. Tab Logic
             if (activeTab === 'frequent') return p.VisitCount > 1;
             if (activeTab === 'recent') {
                 const thirtyDaysAgo = new Date();
                 thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
                 return new Date(p.LastVisitDate) >= thirtyDaysAgo;
             }
-            return true; // 'all' tab
+            return true;
         });
     }, [patients, searchTerm, activeTab]);
 
-    // Reset pagination when filters change
+    // Reset to page 1 if user changes search or filters
     useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm, activeTab]);
 
     // --- PAGINATION CALCS ---
     const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
+    
+    // Safety check: If screen shrinks and current page no longer exists, drop back to last available page
+    if (currentPage > totalPages && totalPages > 0) {
+        setCurrentPage(totalPages);
+    }
+
     const paginatedPatients = filteredPatients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     // --- HELPER FUNCTIONS ---
@@ -276,7 +304,8 @@ const PatientsList = () => {
                         <div className="col-action"></div>
                     </div>
 
-                    <div className="list-body custom-scrollbar">
+                    {/* DYNAMIC HEIGHT CONTAINER */}
+                    <div className="list-body custom-scrollbar" ref={listContainerRef}>
                         {loading ? (
                             <div className="empty-state">Loading directory...</div>
                         ) : paginatedPatients.length > 0 ? (
@@ -322,15 +351,23 @@ const PatientsList = () => {
                                 <span className="material-symbols-outlined">chevron_left</span>
                             </button>
                             
-                            {[...Array(totalPages)].map((_, i) => (
-                                <button 
-                                    key={i} 
-                                    className={`page-num-btn ${currentPage === i + 1 ? 'active' : ''}`}
-                                    onClick={() => setCurrentPage(i + 1)}
-                                >
-                                    {i + 1}
-                                </button>
-                            ))}
+                            {[...Array(totalPages)].map((_, i) => {
+                                // Smart pagination: Only show current, first, last, and +/- 1 page
+                                if (i + 1 === 1 || i + 1 === totalPages || (i + 1 >= currentPage - 1 && i + 1 <= currentPage + 1)) {
+                                    return (
+                                        <button 
+                                            key={i} 
+                                            className={`page-num-btn ${currentPage === i + 1 ? 'active' : ''}`}
+                                            onClick={() => setCurrentPage(i + 1)}
+                                        >
+                                            {i + 1}
+                                        </button>
+                                    );
+                                } else if ((i + 1 === currentPage - 2 && currentPage > 3) || (i + 1 === currentPage + 2 && currentPage < totalPages - 2)) {
+                                    return <span key={i} style={{color: 'var(--text-muted)', padding: '0 0.2rem'}}>...</span>;
+                                }
+                                return null;
+                            })}
 
                             <button 
                                 className="page-nav-btn" 
