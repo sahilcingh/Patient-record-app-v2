@@ -27,8 +27,10 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/help" element={<Help />} />
         
-        {/* Authenticated Pages (Wrapped in Layout) */}
-        <Route path="/home" element={<Layout><Home /></Layout>} />
+        {/* NEW DASHBOARD - Has its own built-in sidebar now! Do not wrap in Layout */}
+        <Route path="/home" element={<Home />} />
+
+        {/* Other Authenticated Pages (Still use the old Layout/Sidebar for now) */}
         <Route path="/new-patient" element={<Layout><NewPatient /></Layout>} />
         <Route path="/old-patient" element={<Layout><OldPatient /></Layout>} />
         <Route path="/patients" element={<Layout><PatientsList /></Layout>} />
