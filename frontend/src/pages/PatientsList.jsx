@@ -20,30 +20,41 @@ const PatientsList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('all'); 
     
-    // --- BULLETPROOF DYNAMIC PAGINATION ENGINE ---
+    // --- FLAWLESS DYNAMIC PAGINATION ENGINE ---
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(6); 
+    const [itemsPerPage, setItemsPerPage] = useState(5); 
     const listBodyRef = useRef(null); 
 
     useEffect(() => {
         if (!listBodyRef.current) return;
 
-        // ResizeObserver watches the exact pixel height of the table body container
+        // ResizeObserver perfectly measures the table container's exact pixel height
         const observer = new ResizeObserver((entries) => {
-            for (let entry of entries) {
-                const availableHeight = entry.contentRect.height;
+            // We use requestAnimationFrame to prevent React rendering conflicts
+            window.requestAnimationFrame(() => {
+                if (!entries || entries.length === 0) return;
                 
-                // Each row is exactly 76px tall + 8px gap = 84px total space per row.
-                // We divide the total available height by 84 to see exactly how many fit!
-                const maxRowsThatFit = Math.floor(availableHeight / 84);
+                const availableHeight = entries[0].contentRect.height;
                 
-                // Set the items per page, ensuring we always show at least 4
-                setItemsPerPage(Math.max(4, maxRowsThatFit));
-            }
+                // Subtract 16px to account for the padding inside the container
+                const exactHeight = availableHeight - 16;
+                
+                // A patient row is exactly 78px tall + 8px gap = 86px total space required
+                const rowHeight = 86;
+                
+                // Calculate how many rows fit perfectly
+                const rowsThatFit = Math.floor(exactHeight / rowHeight);
+                const remainingSpace = exactHeight % rowHeight;
+                
+                // CRITICAL FIX: If there is more than 20px of empty space left at the bottom,
+                // we add an extra row. This guarantees the white void is filled!
+                const finalRows = remainingSpace > 20 ? rowsThatFit + 1 : rowsThatFit;
+
+                setItemsPerPage(Math.max(4, finalRows));
+            });
         });
 
         observer.observe(listBodyRef.current);
-
         return () => observer.disconnect();
     }, []);
 
@@ -330,6 +341,7 @@ const PatientsList = () => {
                         )}
                     </div>
 
+                    {/* PAGINATION FOOTER */}
                     <div className="pagination-footer">
                         <p className="showing-text">
                             Showing <strong>{filteredPatients.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredPatients.length)}</strong> of <strong>{filteredPatients.length}</strong> patients
