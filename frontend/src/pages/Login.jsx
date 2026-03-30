@@ -1,3 +1,221 @@
+// import React, { useState, useEffect } from 'react';
+// import { useNavigate } from 'react-router-dom';
+
+// const Login = () => {
+//     const [doctorId, setDoctorId] = useState('');
+//     const [password, setPassword] = useState('');
+//     const [loading, setLoading] = useState(false);
+    
+//     // NEW: States for our custom Error Modal
+//     const [showErrorModal, setShowErrorModal] = useState(false);
+//     const [errorMessage, setErrorMessage] = useState('');
+    
+//     const navigate = useNavigate();
+
+//     useEffect(() => {
+//         if (localStorage.getItem('doctorToken')) {
+//             navigate('/home');
+//         }
+//     }, [navigate]);
+
+//     const handleLogin = async (e) => {
+//         e.preventDefault();
+//         setLoading(true);
+
+//         try {
+//             const response = await fetch('https://patient-record-app-drly.onrender.com/api/login', {
+//                 method: 'POST',
+//                 headers: { 'Content-Type': 'application/json' },
+//                 body: JSON.stringify({ doctorId, password })
+//             });
+
+//             const data = await response.json();
+
+//             if (data.success) {
+//                 localStorage.setItem('doctorToken', data.token);
+//                 localStorage.setItem('doctorName', data.doctorName);
+//                 localStorage.setItem('dbName', data.dbName);
+//                 navigate('/home');
+//             } else {
+//                 // REMOVED alert(data.message);
+//                 // Trigger our custom Error Modal instead!
+//                 setErrorMessage(data.message || "Invalid credentials. Please try again.");
+//                 setShowErrorModal(true);
+//                 setLoading(false);
+//             }
+//         } catch (error) {
+//             console.error("Login request failed:", error);
+//             // Show modal for network errors too
+//             setErrorMessage("Failed to connect to the server. Please ensure the backend is running.");
+//             setShowErrorModal(true);
+//             setLoading(false);
+//         }
+//     };
+
+//     // Common overlay style for the modal
+//     const overlayStyle = {
+//         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
+//         backgroundColor: 'rgba(15, 23, 42, 0.4)',
+//         backdropFilter: 'blur(4px)',
+//         zIndex: 9999,
+//         display: 'flex', alignItems: 'center', justifyContent: 'center'
+//     };
+
+//     return (
+//         <div className="login-page-wrapper">
+            
+//             {/* Inline styles for modal animation */}
+//             <style>
+//                 {`
+//                     @keyframes popIn {
+//                         0% { opacity: 0; transform: scale(0.9) translateY(20px); }
+//                         100% { opacity: 1; transform: scale(1) translateY(0); }
+//                     }
+//                 `}
+//             </style>
+
+//             {/* --- CUSTOM ERROR MODAL --- */}
+//             {showErrorModal && (
+//                 <div style={overlayStyle}>
+//                     <div style={{ backgroundColor: '#ffffff', padding: '2.5rem', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center', maxWidth: '400px', width: '90%', animation: 'popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+//                         {/* Red Warning Icon */}
+//                         <div style={{ width: '70px', height: '70px', backgroundColor: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+//                             <svg width="36" height="36" fill="none" stroke="#ef4444" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+//                                 <circle cx="12" cy="12" r="10"></circle>
+//                                 <line x1="12" y1="8" x2="12" y2="12"></line>
+//                                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
+//                             </svg>
+//                         </div>
+                        
+//                         <h3 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontSize: '1.5rem', fontWeight: 800 }}>Access Denied</h3>
+//                         <p style={{ margin: '0 0 2rem 0', color: '#64748b', fontSize: '1rem', lineHeight: '1.5' }}>
+//                             {errorMessage}
+//                         </p>
+                        
+//                         <button
+//                             onClick={() => setShowErrorModal(false)}
+//                             style={{ 
+//                                 padding: '0.85rem 2rem', 
+//                                 backgroundColor: '#f1f5f9', 
+//                                 color: '#0f172a', 
+//                                 border: '1px solid #cbd5e1', 
+//                                 borderRadius: '12px', 
+//                                 fontWeight: 700, 
+//                                 fontSize: '1.05rem', 
+//                                 cursor: 'pointer', 
+//                                 width: '100%',
+//                                 transition: 'background-color 0.2s'
+//                             }}
+//                             onMouseEnter={e => e.target.style.backgroundColor = '#e2e8f0'}
+//                             onMouseLeave={e => e.target.style.backgroundColor = '#f1f5f9'}
+//                         >
+//                             Try Again
+//                         </button>
+//                     </div>
+//                 </div>
+//             )}
+
+//             {/* Animated Background Glowing Orbs */}
+//             <div className="bg-shape shape-1"></div>
+//             <div className="bg-shape shape-2"></div>
+//             <div className="bg-shape shape-3"></div>
+            
+//             <div className="login-container">
+                
+//                 {/* --- LEFT SIDE: Branding & Illustration --- */}
+//                 <div className="login-illustration">
+//                     <div className="logo">
+//                         <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+//                             <circle cx="6" cy="6" r="4" fill="#f59e0b"/>
+//                             <circle cx="18" cy="6" r="4" fill="#3b82f6"/>
+//                             <circle cx="6" cy="18" r="4" fill="#10b981"/>
+//                             <circle cx="18" cy="18" r="4" fill="#0ea5e9"/>
+//                         </svg>
+//                         Doctors
+//                     </div>
+                    
+//                     <div className="illustration-wrapper">
+//                         <svg className="illustration-img" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+//                             <path d="M 25 200 C 25 110, 70 110, 100 110 C 130 110, 175 110, 175 200 Z" fill="#cbd5e1" />
+//                             <polygon points="82,110 118,110 100,160" fill="#ffffff" />
+//                             <path d="M 100 200 L 65 110 L 100 165 L 135 110 Z" fill="#94a3b8" opacity="0.3" />
+//                             <polygon points="95,140 105,140 100,195" fill="#ef4444" />
+//                             <polygon points="94,130 106,130 102,145 98,145" fill="#dc2626" />
+//                             <rect x="90" y="80" width="20" height="35" fill="#fcd34d" rx="4" />
+//                             <path d="M 68 65 C 68 30, 80 25, 100 25 C 120 25, 132 30, 132 65 C 132 90, 115 105, 100 105 C 85 105, 68 90, 68 65 Z" fill="#fcd34d" />
+//                             <path d="M 65 55 C 65 10, 135 10, 135 55 C 135 40, 100 25, 65 40 Z" fill="#334155" />
+//                             <path d="M 65 45 Q 60 70 70 75" fill="#334155" />
+//                             <path d="M 135 45 Q 140 70 130 75" fill="#334155" />
+//                             <path d="M 55 120 C 25 165, 30 195, 65 195" fill="none" stroke="#334155" strokeWidth="6" strokeLinecap="round" />
+//                             <circle cx="65" cy="195" r="10" fill="#f8fafc" stroke="#334155" strokeWidth="6" />
+//                             <path d="M 145 120 L 145 150 C 145 160, 130 170, 120 170 C 110 170, 100 180, 100 190" fill="none" stroke="#334155" strokeWidth="6" strokeLinecap="round" />
+//                         </svg>
+//                     </div>
+//                 </div>
+
+//                 {/* --- RIGHT SIDE: Form & Nav --- */}
+//                 <div className="login-form-section">
+                    
+//                     <div className="login-nav">
+//                         <span onClick={() => navigate('/about')}>About</span>
+//                         <span onClick={() => navigate('/contact')}>Contact</span>
+//                         <span onClick={() => navigate('/help')}>Help</span>
+//                         <button className="nav-btn">Book Appointment</button>
+//                     </div>
+
+//                     <div className="login-header">
+//                         <h1>Doctor Login</h1>
+//                     </div>
+
+//                     <form onSubmit={handleLogin}>
+//                         <div className="input-wrapper">
+//                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+//                                 <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+//                                 <circle cx="12" cy="7" r="4"></circle>
+//                             </svg>
+//                             <input 
+//                                 type="text" 
+//                                 className="login-input" 
+//                                 placeholder="Doctor ID" 
+//                                 value={doctorId}
+//                                 onChange={(e) => setDoctorId(e.target.value)}
+//                                 required 
+//                             />
+//                         </div>
+                        
+//                         <div className="input-wrapper">
+//                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+//                                 <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+//                                 <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+//                             </svg>
+//                             <input 
+//                                 type="password" 
+//                                 className="login-input" 
+//                                 placeholder="Password" 
+//                                 value={password}
+//                                 onChange={(e) => setPassword(e.target.value)}
+//                                 required 
+//                             />
+//                         </div>
+
+//                         <button type="submit" className="login-btn-submit" disabled={loading}>
+//                             {loading && <span className="spinner"></span>}
+//                             {loading ? 'Loading...' : 'Sign In'}
+//                         </button>
+//                     </form>
+
+//                     <div className="form-footer">
+//                         Don't have an account yet? <a onClick={() => navigate('/contact')}>Contact Admin</a>
+//                     </div>
+//                 </div>
+//             </div>
+//         </div>
+//     );
+// };
+
+// export default Login;
+
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
@@ -6,7 +224,7 @@ const Login = () => {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     
-    // NEW: States for our custom Error Modal
+    // States for our custom Error Modal
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     
@@ -37,25 +255,22 @@ const Login = () => {
                 localStorage.setItem('dbName', data.dbName);
                 navigate('/home');
             } else {
-                // REMOVED alert(data.message);
-                // Trigger our custom Error Modal instead!
                 setErrorMessage(data.message || "Invalid credentials. Please try again.");
                 setShowErrorModal(true);
                 setLoading(false);
             }
         } catch (error) {
             console.error("Login request failed:", error);
-            // Show modal for network errors too
             setErrorMessage("Failed to connect to the server. Please ensure the backend is running.");
             setShowErrorModal(true);
             setLoading(false);
         }
     };
 
-    // Common overlay style for the modal
+    // Dark themed overlay style for the modal
     const overlayStyle = {
         position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.4)',
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
         backdropFilter: 'blur(4px)',
         zIndex: 9999,
         display: 'flex', alignItems: 'center', justifyContent: 'center'
@@ -74,40 +289,26 @@ const Login = () => {
                 `}
             </style>
 
-            {/* --- CUSTOM ERROR MODAL --- */}
+            {/* --- CUSTOM DARK ERROR MODAL --- */}
             {showErrorModal && (
                 <div style={overlayStyle}>
-                    <div style={{ backgroundColor: '#ffffff', padding: '2.5rem', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center', maxWidth: '400px', width: '90%', animation: 'popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-                        {/* Red Warning Icon */}
-                        <div style={{ width: '70px', height: '70px', backgroundColor: '#fee2e2', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                    <div style={{ backgroundColor: '#18181b', padding: '2.5rem', borderRadius: '20px', border: '1px solid #3f3f46', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', textAlign: 'center', maxWidth: '400px', width: '90%', animation: 'popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
+                        <div style={{ width: '70px', height: '70px', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
                             <svg width="36" height="36" fill="none" stroke="#ef4444" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <line x1="12" y1="8" x2="12" y2="12"></line>
                                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
                             </svg>
                         </div>
-                        
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontSize: '1.5rem', fontWeight: 800 }}>Access Denied</h3>
-                        <p style={{ margin: '0 0 2rem 0', color: '#64748b', fontSize: '1rem', lineHeight: '1.5' }}>
+                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#ffffff', fontSize: '1.5rem', fontWeight: 800 }}>Access Denied</h3>
+                        <p style={{ margin: '0 0 2rem 0', color: '#a1a1aa', fontSize: '1rem', lineHeight: '1.5' }}>
                             {errorMessage}
                         </p>
-                        
                         <button
                             onClick={() => setShowErrorModal(false)}
-                            style={{ 
-                                padding: '0.85rem 2rem', 
-                                backgroundColor: '#f1f5f9', 
-                                color: '#0f172a', 
-                                border: '1px solid #cbd5e1', 
-                                borderRadius: '12px', 
-                                fontWeight: 700, 
-                                fontSize: '1.05rem', 
-                                cursor: 'pointer', 
-                                width: '100%',
-                                transition: 'background-color 0.2s'
-                            }}
-                            onMouseEnter={e => e.target.style.backgroundColor = '#e2e8f0'}
-                            onMouseLeave={e => e.target.style.backgroundColor = '#f1f5f9'}
+                            style={{ padding: '0.85rem 2rem', backgroundColor: '#27272a', color: '#ffffff', border: '1px solid #3f3f46', borderRadius: '12px', fontWeight: 700, fontSize: '1.05rem', cursor: 'pointer', width: '100%', transition: 'background-color 0.2s' }}
+                            onMouseEnter={e => e.target.style.backgroundColor = '#3f3f46'}
+                            onMouseLeave={e => e.target.style.backgroundColor = '#27272a'}
                         >
                             Try Again
                         </button>
@@ -115,98 +316,118 @@ const Login = () => {
                 </div>
             )}
 
-            {/* Animated Background Glowing Orbs */}
-            <div className="bg-shape shape-1"></div>
-            <div className="bg-shape shape-2"></div>
-            <div className="bg-shape shape-3"></div>
-            
             <div className="login-container">
                 
-                {/* --- LEFT SIDE: Branding & Illustration --- */}
-                <div className="login-illustration">
-                    <div className="logo">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-                            <circle cx="6" cy="6" r="4" fill="#f59e0b"/>
-                            <circle cx="18" cy="6" r="4" fill="#3b82f6"/>
-                            <circle cx="6" cy="18" r="4" fill="#10b981"/>
-                            <circle cx="18" cy="18" r="4" fill="#0ea5e9"/>
-                        </svg>
-                        Doctors
+                {/* --- LEFT SIDE: Profile & Branding --- */}
+                <div className="login-left">
+                    <div className="login-logo">
+                        <div className="logo-dots">
+                            <span style={{backgroundColor: '#10b981'}}></span>
+                            <span style={{backgroundColor: '#3b82f6'}}></span>
+                            <span style={{backgroundColor: '#2dd4bf'}}></span>
+                            <span style={{backgroundColor: '#059669'}}></span>
+                        </div>
+                        Healthcare
                     </div>
                     
-                    <div className="illustration-wrapper">
-                        <svg className="illustration-img" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
-                            <path d="M 25 200 C 25 110, 70 110, 100 110 C 130 110, 175 110, 175 200 Z" fill="#cbd5e1" />
-                            <polygon points="82,110 118,110 100,160" fill="#ffffff" />
-                            <path d="M 100 200 L 65 110 L 100 165 L 135 110 Z" fill="#94a3b8" opacity="0.3" />
-                            <polygon points="95,140 105,140 100,195" fill="#ef4444" />
-                            <polygon points="94,130 106,130 102,145 98,145" fill="#dc2626" />
-                            <rect x="90" y="80" width="20" height="35" fill="#fcd34d" rx="4" />
-                            <path d="M 68 65 C 68 30, 80 25, 100 25 C 120 25, 132 30, 132 65 C 132 90, 115 105, 100 105 C 85 105, 68 90, 68 65 Z" fill="#fcd34d" />
-                            <path d="M 65 55 C 65 10, 135 10, 135 55 C 135 40, 100 25, 65 40 Z" fill="#334155" />
-                            <path d="M 65 45 Q 60 70 70 75" fill="#334155" />
-                            <path d="M 135 45 Q 140 70 130 75" fill="#334155" />
-                            <path d="M 55 120 C 25 165, 30 195, 65 195" fill="none" stroke="#334155" strokeWidth="6" strokeLinecap="round" />
-                            <circle cx="65" cy="195" r="10" fill="#f8fafc" stroke="#334155" strokeWidth="6" />
-                            <path d="M 145 120 L 145 150 C 145 160, 130 170, 120 170 C 110 170, 100 180, 100 190" fill="none" stroke="#334155" strokeWidth="6" strokeLinecap="round" />
-                        </svg>
+                    <div className="profile-img-container">
+                        <img 
+                            alt="Doctor Profile" 
+                            className="profile-img" 
+                            src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=400&auto=format&fit=crop" 
+                        />
+                        <div className="portal-badge">
+                            <div className="badge-icon">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
+                                    <polyline points="20 6 9 17 4 12"></polyline>
+                                </svg>
+                            </div>
+                            <div className="badge-text">
+                                <span className="badge-title">Identity</span>
+                                <span className="badge-status">Portal Active</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
 
                 {/* --- RIGHT SIDE: Form & Nav --- */}
-                <div className="login-form-section">
+                <div className="login-right">
                     
                     <div className="login-nav">
                         <span onClick={() => navigate('/about')}>About</span>
-                        <span onClick={() => navigate('/contact')}>Contact</span>
                         <span onClick={() => navigate('/help')}>Help</span>
-                        <button className="nav-btn">Book Appointment</button>
+                        <button className="nav-btn" onClick={() => navigate('/contact')}>Book Appt</button>
                     </div>
 
                     <div className="login-header">
-                        <h1>Doctor Login</h1>
+                        <h1>Welcome Back</h1>
+                        <p>Secure doctor authentication portal.</p>
                     </div>
 
                     <form onSubmit={handleLogin}>
-                        <div className="input-wrapper">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                <circle cx="12" cy="7" r="4"></circle>
-                            </svg>
-                            <input 
-                                type="text" 
-                                className="login-input" 
-                                placeholder="Doctor ID" 
-                                value={doctorId}
-                                onChange={(e) => setDoctorId(e.target.value)}
-                                required 
-                            />
+                        <div className="input-group">
+                            <label>Doctor ID</label>
+                            <div className="input-wrapper">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                    <circle cx="12" cy="7" r="4"></circle>
+                                </svg>
+                                <input 
+                                    type="text" 
+                                    className="login-input" 
+                                    placeholder="ID Number" 
+                                    value={doctorId}
+                                    onChange={(e) => setDoctorId(e.target.value)}
+                                    required 
+                                />
+                            </div>
                         </div>
                         
-                        <div className="input-wrapper">
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                            </svg>
-                            <input 
-                                type="password" 
-                                className="login-input" 
-                                placeholder="Password" 
-                                value={password}
-                                onChange={(e) => setPassword(e.target.value)}
-                                required 
-                            />
+                        <div className="input-group">
+                            <label>Password</label>
+                            <div className="input-wrapper">
+                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                </svg>
+                                <input 
+                                    type="password" 
+                                    className="login-input" 
+                                    placeholder="••••••••" 
+                                    value={password}
+                                    onChange={(e) => setPassword(e.target.value)}
+                                    required 
+                                />
+                            </div>
+                        </div>
+
+                        <div className="form-options">
+                            <label>
+                                <input type="checkbox" /> Keep active
+                            </label>
+                            <a href="#" className="forgot-link">Forgot password?</a>
                         </div>
 
                         <button type="submit" className="login-btn-submit" disabled={loading}>
                             {loading && <span className="spinner"></span>}
-                            {loading ? 'Loading...' : 'Sign In'}
+                            {loading ? 'Logging in...' : 'Sign In'}
                         </button>
                     </form>
 
-                    <div className="form-footer">
-                        Don't have an account yet? <a onClick={() => navigate('/contact')}>Contact Admin</a>
+                    <p className="support-text">
+                        System issues? <span onClick={() => navigate('/contact')}>Admin Support</span>
+                    </p>
+
+                    <div className="login-footer">
+                        <div className="mode-toggle">
+                            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
+                            </svg>
+                            MODE
+                        </div>
+                        <span>v2.4.0 Secure Encryption</span>
                     </div>
+
                 </div>
             </div>
         </div>
