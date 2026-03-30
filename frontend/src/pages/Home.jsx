@@ -16,6 +16,7 @@ const Home = () => {
         return savedTheme === 'true'; 
     });
 
+    // Stats state initialized to 0
     const [stats, setStats] = useState({
         patientsToday: 0, patientsTrend: 0,
         newRegistrations: 0, registrationsTrend: 0,
@@ -56,6 +57,18 @@ const Home = () => {
     const handleLogout = () => {
         localStorage.removeItem('doctorToken');
         navigate('/');
+    };
+
+    // --- DYNAMIC TREND BADGE ---
+    const renderTrendBadge = (trendValue) => {
+        const value = parseFloat(trendValue) || 0;
+        const isPositive = value >= 0;
+        const sign = isPositive && value !== 0 ? '+' : '';
+        const badgeClass = isPositive ? 'badge positive' : 'badge negative';
+        
+        return (
+            <span className={badgeClass}>{sign}{value}%</span>
+        );
     };
 
     // --- DATA FETCHING ---
@@ -211,18 +224,18 @@ const Home = () => {
                     </div>
                 </header>
 
-                {/* STATS ROW */}
+                {/* STATS ROW - Fully Dynamic */}
                 <section className="stats-grid">
                     <div className="stat-card glass-panel card-blue">
                         <div className="stat-icon"><span className="material-symbols-outlined">person</span></div>
                         <div className="stat-info">
                             <div className="stat-header">
                                 <h3>Patients Today</h3>
-                                <span className="badge positive">+12%</span>
+                                {renderTrendBadge(stats.patientsTrend)}
                             </div>
                             <div className="stat-values">
-                                <h2>{stats.patientsToday || 42}</h2>
-                                <p>vs 34</p>
+                                <h2>{stats.patientsToday}</h2>
+                                <p>from yesterday</p>
                             </div>
                         </div>
                     </div>
@@ -231,12 +244,12 @@ const Home = () => {
                         <div className="stat-icon"><span className="material-symbols-outlined">event_available</span></div>
                         <div className="stat-info">
                             <div className="stat-header">
-                                <h3>Weekly Visits</h3>
-                                <span className="badge negative">-4%</span>
+                                <h3>Visits This Week</h3>
+                                {renderTrendBadge(stats.registrationsTrend)}
                             </div>
                             <div className="stat-values">
-                                <h2>{stats.newRegistrations || 186}</h2>
-                                <p>vs 194</p>
+                                <h2>{stats.newRegistrations}</h2>
+                                <p>from last wk</p>
                             </div>
                         </div>
                     </div>
@@ -245,12 +258,12 @@ const Home = () => {
                         <div className="stat-icon"><span className="material-symbols-outlined">science</span></div>
                         <div className="stat-info">
                             <div className="stat-header">
-                                <h3>Tests Pending</h3>
-                                <span className="badge positive">+8%</span>
+                                <h3>Tests This Week</h3>
+                                {renderTrendBadge(stats.testsTrend)}
                             </div>
                             <div className="stat-values">
-                                <h2>{stats.testsPrescribed || 12}</h2>
-                                <p>4 urgent</p>
+                                <h2>{stats.testsPrescribed}</h2>
+                                <p>from last wk</p>
                             </div>
                         </div>
                     </div>
@@ -260,17 +273,17 @@ const Home = () => {
                         <div className="stat-info">
                             <div className="stat-header">
                                 <h3>Daily Revenue</h3>
-                                <span className="badge positive">+18%</span>
+                                {renderTrendBadge(stats.revenueTrend)}
                             </div>
                             <div className="stat-values">
-                                <h2>${stats.dailyRevenue || '2,840'}</h2>
-                                <p>from 24</p>
+                                <h2>₹{stats.dailyRevenue}</h2>
+                                <p>monthly trend</p>
                             </div>
                         </div>
                     </div>
                 </section>
 
-                {/* RECENT PATIENTS TABLE */}
+                {/* RECENT PATIENTS TABLE - Fully Dynamic */}
                 <section className="recent-patients-panel glass-panel">
                     <div className="panel-header">
                         <h2>Recent Patients</h2>
@@ -310,7 +323,7 @@ const Home = () => {
                                             <td className="text-center">
                                                 <span className="status-badge completed">Completed</span>
                                             </td>
-                                            <td>General Checkup</td>
+                                            <td>{patient.Department || 'General Checkup'}</td>
                                             <td>{formattedDate}</td>
                                             <td className="text-right">
                                                 <button className="action-btn"><span className="material-symbols-outlined">more_horiz</span></button>
