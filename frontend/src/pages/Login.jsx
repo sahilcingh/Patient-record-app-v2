@@ -217,12 +217,18 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../css/auth.css'; // Make sure this path matches where you save the CSS file
+import '../css/auth.css'; 
 
 const Login = () => {
     const [doctorId, setDoctorId] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
+    
+    // FIXED: Initialize Theme State directly from localStorage
+    const [isDark, setIsDark] = useState(() => {
+        const savedTheme = localStorage.getItem('darkMode');
+        return savedTheme !== 'false'; // Defaults to true, becomes false only if explicitly saved as 'false'
+    });
     
     // States for custom Error Modal
     const [showErrorModal, setShowErrorModal] = useState(false);
@@ -230,11 +236,18 @@ const Login = () => {
     
     const navigate = useNavigate();
 
+    // FIXED: Now we only use useEffect for actual side effects like navigation
     useEffect(() => {
         if (localStorage.getItem('doctorToken')) {
             navigate('/home');
         }
     }, [navigate]);
+
+    // Handle Theme Toggle
+    const toggleTheme = () => {
+        setIsDark(!isDark);
+        localStorage.setItem('darkMode', !isDark);
+    };
 
     const handleLogin = async (e) => {
         e.preventDefault();
@@ -268,7 +281,7 @@ const Login = () => {
     };
 
     return (
-        <div className="login-wrapper">
+        <div className="login-wrapper" data-theme={isDark ? 'dark' : 'light'}>
             
             {/* --- CUSTOM ERROR MODAL --- */}
             {showErrorModal && (
@@ -391,7 +404,8 @@ const Login = () => {
                     </div>
 
                     <div className="bottom-footer">
-                        <div className="mode-toggle">
+                        {/* THEME TOGGLE BUTTON */}
+                        <div className="mode-toggle" onClick={toggleTheme}>
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                             </svg>
