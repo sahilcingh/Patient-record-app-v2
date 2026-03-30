@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../css/dashboard.css';
 import '../css/patients.css'; 
@@ -20,42 +20,34 @@ const PatientsList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('all'); 
     
-    // --- FLAWLESS DYNAMIC PAGINATION ENGINE ---
+    // --- BULLETPROOF DYNAMIC PAGINATION ENGINE ---
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(5); 
-    const listBodyRef = useRef(null); 
+    const [itemsPerPage, setItemsPerPage] = useState(8); // Better fallback
 
     useEffect(() => {
-        if (!listBodyRef.current) return;
+        const calculateItemsPerPage = () => {
+            // 1. Measure the exact physical height of the user's browser window
+            const screenHeight = window.innerHeight;
+            
+            // 2. Subtract the static UI elements (Top Header, Search Bar, Table Header, and Footer)
+            // These elements take up roughly 380px of vertical space combined.
+            const availableTableHeight = screenHeight - 380;
+            
+            // 3. Each patient row is exactly 84px tall
+            // CRITICAL FIX: We use Math.ceil() to aggressively round UP. 
+            // It is much better to over-render by 1 row (creating a tiny scrollbar inside the table) 
+            // than to under-render and leave a massive white void at the bottom!
+            const rowsToShow = Math.ceil(availableTableHeight / 84);
+            
+            setItemsPerPage(Math.max(4, rowsToShow));
+        };
 
-        // ResizeObserver perfectly measures the table container's exact pixel height
-        const observer = new ResizeObserver((entries) => {
-            // We use requestAnimationFrame to prevent React rendering conflicts
-            window.requestAnimationFrame(() => {
-                if (!entries || entries.length === 0) return;
-                
-                const availableHeight = entries[0].contentRect.height;
-                
-                // Subtract 16px to account for the padding inside the container
-                const exactHeight = availableHeight - 16;
-                
-                // A patient row is exactly 78px tall + 8px gap = 86px total space required
-                const rowHeight = 86;
-                
-                // Calculate how many rows fit perfectly
-                const rowsThatFit = Math.floor(exactHeight / rowHeight);
-                const remainingSpace = exactHeight % rowHeight;
-                
-                // CRITICAL FIX: If there is more than 20px of empty space left at the bottom,
-                // we add an extra row. This guarantees the white void is filled!
-                const finalRows = remainingSpace > 20 ? rowsThatFit + 1 : rowsThatFit;
-
-                setItemsPerPage(Math.max(4, finalRows));
-            });
-        });
-
-        observer.observe(listBodyRef.current);
-        return () => observer.disconnect();
+        // Run immediately on load
+        calculateItemsPerPage();
+        
+        // Recalculate instantly if the user resizes their window
+        window.addEventListener('resize', calculateItemsPerPage);
+        return () => window.removeEventListener('resize', calculateItemsPerPage);
     }, []);
 
     // Modal States
@@ -118,6 +110,7 @@ const PatientsList = () => {
         });
     }, [patients, searchTerm, activeTab]);
 
+    // Reset to page 1 if user changes search or filters
     useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm, activeTab]);
@@ -309,8 +302,7 @@ const PatientsList = () => {
                         <div className="col-action"></div>
                     </div>
 
-                    {/* THIS REF MEASURES THE EXACT HEIGHT AVAILABLE */}
-                    <div className="list-body custom-scrollbar" ref={listBodyRef}>
+                    <div className="list-body custom-scrollbar">
                         {loading ? (
                             <div className="empty-state">Loading directory...</div>
                         ) : paginatedPatients.length > 0 ? (
