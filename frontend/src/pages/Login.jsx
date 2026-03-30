@@ -215,16 +215,16 @@
 
 // export default Login;
 
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import './auth.css'; // Make sure this path matches where you save the CSS file
 
 const Login = () => {
     const [doctorId, setDoctorId] = useState('');
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     
-    // States for our custom Error Modal
+    // States for custom Error Modal
     const [showErrorModal, setShowErrorModal] = useState(false);
     const [errorMessage, setErrorMessage] = useState('');
     
@@ -267,61 +267,34 @@ const Login = () => {
         }
     };
 
-    // Dark themed overlay style for the modal
-    const overlayStyle = {
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(0, 0, 0, 0.7)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 9999,
-        display: 'flex', alignItems: 'center', justifyContent: 'center'
-    };
-
     return (
-        <div className="login-page-wrapper">
+        <div className="login-wrapper">
             
-            {/* Inline styles for modal animation */}
-            <style>
-                {`
-                    @keyframes popIn {
-                        0% { opacity: 0; transform: scale(0.9) translateY(20px); }
-                        100% { opacity: 1; transform: scale(1) translateY(0); }
-                    }
-                `}
-            </style>
-
-            {/* --- CUSTOM DARK ERROR MODAL --- */}
+            {/* --- CUSTOM ERROR MODAL --- */}
             {showErrorModal && (
-                <div style={overlayStyle}>
-                    <div style={{ backgroundColor: '#18181b', padding: '2.5rem', borderRadius: '20px', border: '1px solid #3f3f46', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.5)', textAlign: 'center', maxWidth: '400px', width: '90%', animation: 'popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-                        <div style={{ width: '70px', height: '70px', backgroundColor: 'rgba(239, 68, 68, 0.1)', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
+                <div className="modal-overlay">
+                    <div className="modal-content">
+                        <div className="modal-icon">
                             <svg width="36" height="36" fill="none" stroke="#ef4444" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <circle cx="12" cy="12" r="10"></circle>
                                 <line x1="12" y1="8" x2="12" y2="12"></line>
                                 <line x1="12" y1="16" x2="12.01" y2="16"></line>
                             </svg>
                         </div>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#ffffff', fontSize: '1.5rem', fontWeight: 800 }}>Access Denied</h3>
-                        <p style={{ margin: '0 0 2rem 0', color: '#a1a1aa', fontSize: '1rem', lineHeight: '1.5' }}>
-                            {errorMessage}
-                        </p>
-                        <button
-                            onClick={() => setShowErrorModal(false)}
-                            style={{ padding: '0.85rem 2rem', backgroundColor: '#27272a', color: '#ffffff', border: '1px solid #3f3f46', borderRadius: '12px', fontWeight: 700, fontSize: '1.05rem', cursor: 'pointer', width: '100%', transition: 'background-color 0.2s' }}
-                            onMouseEnter={e => e.target.style.backgroundColor = '#3f3f46'}
-                            onMouseLeave={e => e.target.style.backgroundColor = '#27272a'}
-                        >
-                            Try Again
-                        </button>
+                        <h3>Access Denied</h3>
+                        <p>{errorMessage}</p>
+                        <button onClick={() => setShowErrorModal(false)}>Try Again</button>
                     </div>
                 </div>
             )}
 
-            <div className="login-container">
+            {/* --- MAIN LOGIN CARD --- */}
+            <div className="login-card">
                 
-                {/* --- LEFT SIDE: Profile & Branding --- */}
+                {/* --- LEFT PANEL --- */}
                 <div className="login-left">
-                    <div className="login-logo">
-                        <div className="logo-dots">
+                    <div className="brand-logo">
+                        <div className="brand-dots">
                             <span style={{backgroundColor: '#10b981'}}></span>
                             <span style={{backgroundColor: '#3b82f6'}}></span>
                             <span style={{backgroundColor: '#2dd4bf'}}></span>
@@ -330,98 +303,101 @@ const Login = () => {
                         Healthcare
                     </div>
                     
-                    <div className="profile-img-container">
-                        <img alt="Friendly male doctor" class="w-full aspect-square rounded-2xl object-cover shadow-lg border-2 border-white dark:border-zinc-800" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQIwwzdEfZjGHKblsK-S4HPcRcy74Z0mTkxm_aS6Gt1jSiA1vRBb7UEHdwmASvWxydQQSPcbcxwmIvbDTdLa3ZUHvmnZiC-RBhiyoBYwLIX3Codq7J4RkOLSK7KeRKjEOJhKXZaVIzB-jmjcvGb9Yj16em7xQbSyhmdAq6fMjt-11jkT1uURLGsr2ma7DKVsHljawlKdaXz_dLMgJbbX-2hfc-fVmsY4U3pxzn-mFG0pWheXazFdEQIsw36oN7lga9cB4SURWRnjk"/>
-                        <div className="portal-badge">
+                    <div className="profile-container">
+                        <img 
+                            alt="Doctor" 
+                            className="profile-img" 
+                            src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQIwwzdEfZjGHKblsK-S4HPcRcy74Z0mTkxm_aS6Gt1jSiA1vRBb7UEHdwmASvWxydQQSPcbcxwmIvbDTdLa3ZUHvmnZiC-RBhiyoBYwLIX3Codq7J4RkOLSK7KeRKjEOJhKXZaVIzB-jmjcvGb9Yj16em7xQbSyhmdAq6fMjt-11jkT1uURLGsr2ma7DKVsHljawlKdaXz_dLMgJbbX-2hfc-fVmsY4U3pxzn-mFG0pWheXazFdEQIsw36oN7lga9cB4SURWRnjk" 
+                        />
+                        <div className="profile-badge">
                             <div className="badge-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                                     <polyline points="20 6 9 17 4 12"></polyline>
                                 </svg>
                             </div>
                             <div className="badge-text">
-                                <span className="badge-title">Identity</span>
+                                <span className="badge-label">Identity</span>
                                 <span className="badge-status">Portal Active</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                {/* --- RIGHT SIDE: Form & Nav --- */}
+                {/* --- RIGHT PANEL --- */}
                 <div className="login-right">
                     
-                    <div className="login-nav">
+                    <div className="top-nav">
                         <span onClick={() => navigate('/about')}>About</span>
                         <span onClick={() => navigate('/help')}>Help</span>
-                        <button className="nav-btn" onClick={() => navigate('/contact')}>Book Appt</button>
+                        <button className="book-btn">Book Appt</button>
                     </div>
 
-                    <div className="login-header">
-                        <h1>Welcome Back</h1>
-                        <p>Secure doctor authentication portal.</p>
+                    <div className="form-container">
+                        <div className="form-header">
+                            <h1>Welcome Back</h1>
+                            <p>Secure doctor authentication portal.</p>
+                        </div>
+
+                        <form onSubmit={handleLogin}>
+                            <div className="input-group">
+                                <label>Doctor ID</label>
+                                <div className="input-with-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                        <circle cx="12" cy="7" r="4"></circle>
+                                    </svg>
+                                    <input 
+                                        type="text" 
+                                        placeholder="ID Number" 
+                                        value={doctorId}
+                                        onChange={(e) => setDoctorId(e.target.value)}
+                                        required 
+                                    />
+                                </div>
+                            </div>
+                            
+                            <div className="input-group">
+                                <label>Password</label>
+                                <div className="input-with-icon">
+                                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                                        <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
+                                        <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
+                                    </svg>
+                                    <input 
+                                        type="password" 
+                                        placeholder="••••••••" 
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        required 
+                                    />
+                                </div>
+                            </div>
+
+                            <div className="form-actions">
+                                <label className="checkbox-label">
+                                    <input type="checkbox" /> Keep active
+                                </label>
+                                <span className="forgot-link">Forgot password?</span>
+                            </div>
+
+                            <button type="submit" className="submit-btn" disabled={loading}>
+                                {loading ? 'Logging in...' : 'Sign In'}
+                            </button>
+                        </form>
+
+                        <div className="support-link">
+                            System issues? <span onClick={() => navigate('/contact')}>Admin Support</span>
+                        </div>
                     </div>
 
-                    <form onSubmit={handleLogin}>
-                        <div className="input-group">
-                            <label>Doctor ID</label>
-                            <div className="input-wrapper">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="12" cy="7" r="4"></circle>
-                                </svg>
-                                <input 
-                                    type="text" 
-                                    className="login-input" 
-                                    placeholder="ID Number" 
-                                    value={doctorId}
-                                    onChange={(e) => setDoctorId(e.target.value)}
-                                    required 
-                                />
-                            </div>
-                        </div>
-                        
-                        <div className="input-group">
-                            <label>Password</label>
-                            <div className="input-wrapper">
-                                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                    <rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect>
-                                    <path d="M7 11V7a5 5 0 0 1 10 0v4"></path>
-                                </svg>
-                                <input 
-                                    type="password" 
-                                    className="login-input" 
-                                    placeholder="••••••••" 
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    required 
-                                />
-                            </div>
-                        </div>
-
-                        <div className="form-options">
-                            <label>
-                                <input type="checkbox" /> Keep active
-                            </label>
-                            <a href="#" className="forgot-link">Forgot password?</a>
-                        </div>
-
-                        <button type="submit" className="login-btn-submit" disabled={loading}>
-                            {loading && <span className="spinner"></span>}
-                            {loading ? 'Logging in...' : 'Sign In'}
-                        </button>
-                    </form>
-
-                    <p className="support-text">
-                        System issues? <span onClick={() => navigate('/contact')}>Admin Support</span>
-                    </p>
-
-                    <div className="login-footer">
+                    <div className="bottom-footer">
                         <div className="mode-toggle">
                             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
                             </svg>
                             MODE
                         </div>
-                        <span>v2.4.0 Secure Encryption</span>
+                        <span className="version">v2.4.0 Secure Encryption</span>
                     </div>
 
                 </div>
