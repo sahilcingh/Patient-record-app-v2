@@ -1,12 +1,21 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../css/new-patient.css';
+import '../css/dashboard.css'; // Re-use main layout styles
+import '../css/new-patient.css'; // New styles specific to the form
 
 const NewPatient = () => {
     const navigate = useNavigate();
     const formRef = useRef(null);
     const [loading, setLoading] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     
+    // Theme & Doctor Profile
+    const [isDark, setIsDark] = useState(() => localStorage.getItem('darkMode') === 'true');
+    const [doctorProfile, setDoctorProfile] = useState({
+        name: localStorage.getItem('doctorName') || 'Loading...',
+        designation: 'Loading...'
+    });
+
     // Modals State
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [isInvModalOpen, setIsInvModalOpen] = useState(false);
@@ -22,13 +31,31 @@ const NewPatient = () => {
     // Investigation State
     const [investigationText, setInvestigationText] = useState('');
 
-    const labelStyle = { 
-        fontSize: '0.85rem', color: 'var(--text-muted)', 
-        marginLeft: '5px', marginBottom: '4px', 
-        display: 'block', fontWeight: 600 
-    };
+    // --- FETCH DOCTOR PROFILE ---
+    useEffect(() => {
+        const token = localStorage.getItem('doctorToken');
+        if (!token) { navigate('/'); return; }
 
-    // --- UPGRADED: Handle Input Changes with Strict Limits ---
+        const fetchProfile = async () => {
+            try {
+                const profileRes = await fetch('https://patient-record-app-drly.onrender.com/api/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (profileRes.ok) {
+                    const profileData = await profileRes.json();
+                    if (profileData.success) {
+                        setDoctorProfile({
+                            name: profileData.profile.DoctorName || localStorage.getItem('doctorName') || 'Doctor',
+                            designation: profileData.profile.DoctorDesi || 'Medical Professional'
+                        });
+                    }
+                }
+            } catch (err) { console.error("Error fetching profile:", err); }
+        };
+        fetchProfile();
+    }, [navigate]);
+
+    // --- LOGIC: Handle Input Changes with Strict Limits ---
     const handleChange = (e) => {
         const { id, value } = e.target;
 
@@ -56,12 +83,14 @@ const NewPatient = () => {
         (parseFloat(formData.conveyance) || 0)
     ).toString();
 
+    // --- LOGIC: Set Date & Handle 'Enter' Key Navigation ---
     useEffect(() => {
         const today = new Date();
         const day = String(today.getDate()).padStart(2, '0');
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const year = today.getFullYear();
-        setFormData(prev => ({ ...prev, visitDate: `${day}-${month}-${year}` }));
+        // Set default date to today in YYYY-MM-DD format for HTML date inputs
+        setFormData(prev => ({ ...prev, visitDate: `${year}-${month}-${day}` }));
 
         if (!formRef.current) return;
         const focusableElements = Array.from(formRef.current.querySelectorAll('input, select, textarea, button[type="submit"]'));
@@ -75,9 +104,6 @@ const NewPatient = () => {
                 let index = focusableElements.indexOf(target);
                 let nextIndex = index + 1;
 
-                if (focusableElements[nextIndex] && focusableElements[nextIndex].id === 'visitDate') {
-                    nextIndex++;
-                }
                 if (focusableElements[nextIndex]) {
                     focusableElements[nextIndex].focus();
                 }
@@ -88,23 +114,24 @@ const NewPatient = () => {
         return () => focusableElements.forEach(el => el.removeEventListener('keydown', handleKeyDown));
     }, []);
 
-    // --- AUTHENTICATION HELPER ---
-    const handleAuthError = (status) => {
-        if (status === 401 || status === 403) {
-            localStorage.removeItem('doctorToken');
-            localStorage.removeItem('doctorName');
-            localStorage.removeItem('dbName');
-            navigate('/');
-        }
+    const toggleTheme = () => {
+        const newTheme = !isDark;
+        setIsDark(newTheme);
+        localStorage.setItem('darkMode', newTheme);
     };
 
-    // --- Intercept form submit to show popup first ---
+    const handleLogout = () => {
+        localStorage.removeItem('doctorToken');
+        navigate('/');
+    };
+
+    // --- INTERCEPT FORM SUBMIT ---
     const handleInitialSubmit = (e) => {
         e.preventDefault();
         setShowConfirmModal(true); 
     };
 
-    // --- REAL SUBMIT LOGIC (Triggered by the popup) ---
+    // --- REAL SUBMIT LOGIC ---
     const confirmSavePatient = async () => {
         setShowConfirmModal(false);
         setLoading(true);
@@ -116,21 +143,13 @@ const NewPatient = () => {
             return;
         }
 
-        let sqlFormattedDate = formData.visitDate;
-        if (sqlFormattedDate.includes('-')) {
-            const [day, month, year] = sqlFormattedDate.split('-');
-            if (year && year.length === 4) {
-                sqlFormattedDate = `${year}-${month}-${day}`;
-            }
-        }
-
         const payload = {
-            date: sqlFormattedDate, patientName: formData.patientName,
+            date: formData.visitDate, patientName: formData.patientName,
             fatherName: formData.fatherName, sex: formData.gender,
             age: formData.age, mobile: formData.mobile,
             address: formData.address, chiefComplaint: formData.chiefComplaint,
             medicine: formData.medicine, 
-            tests: investigationText, // <-- Sent from our new modal
+            tests: investigationText, // <-- Sent from our modal
             total: formData.total || 0, cartage: formData.cartage || 0,
             conveyance: formData.conveyance || 0, grandTotal: grandTotal
         };
@@ -143,7 +162,10 @@ const NewPatient = () => {
             });
             
             if (!response.ok) {
-                handleAuthError(response.status);
+                if (response.status === 401 || response.status === 403) {
+                    localStorage.removeItem('doctorToken');
+                    navigate('/');
+                }
                 setLoading(false);
                 return;
             }
@@ -162,137 +184,263 @@ const NewPatient = () => {
         }
     };
 
+    // Current Date Formatter for Header
+    const getFormattedHeaderDate = () => {
+        const options = { year: 'numeric', month: 'long', day: 'numeric' };
+        return new Date().toLocaleDateString('en-US', options);
+    };
+
     return (
-        <>
-            <h1 className="page-title" style={{ marginBottom: '1rem', fontSize: '1.75rem' }}>New Patient Registration</h1>
+        <div className="dashboard-wrapper" data-theme={isDark ? 'dark' : 'light'}>
+            
+            {/* SIDEBAR */}
+            <aside className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
+                <div className="sidebar-header">
+                    <button className="menu-btn" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                        <span className="material-symbols-outlined">menu</span>
+                    </button>
+                    {isSidebarOpen && (
+                        <div className="logo">
+                            <span className="material-symbols-outlined logo-icon">medical_services</span>
+                            <span className="logo-text">MediFlow</span>
+                        </div>
+                    )}
+                </div>
 
-            <div className="form-card">
-                <form ref={formRef} onSubmit={handleInitialSubmit}>
-                    
-                    <div className="form-section-title">Personal Information</div>
-                    
-                    {/* TIGHTER MARGINS APPLIED BELOW */}
-                    <div className="grid-personal-row1" style={{ marginBottom: '0.75rem' }}>
-                        <div>
-                            <label style={labelStyle}>Patient's Name *</label>
-                            <input type="text" className="input-grey" id="patientName" value={formData.patientName} onChange={handleChange} placeholder="Enter name" required autoFocus />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Date *</label>
-                            <input type="text" className="input-grey" id="visitDate" value={formData.visitDate} onChange={handleChange} style={{ backgroundColor: '#f8fafc', fontWeight: 600 }} required />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Age *</label>
-                            <input type="number" className="input-grey" id="age" value={formData.age} onChange={handleChange} placeholder="Years" required />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Gender *</label>
-                            <select className="input-grey" id="gender" value={formData.gender} onChange={handleChange} required>
-                                <option value="" disabled>Select</option>
-                                <option value="male">Male</option>
-                                <option value="female">Female</option>
-                                <option value="other">Other</option>
-                            </select>
-                        </div>
+                <div className="sidebar-profile">
+                    <div className="doctor-avatar">
+                        <img alt="Doctor" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAA5LdANAUa2KwGpdHFThaxvz60QKnY86uujQYa7kzWemiV_fYEzTS1PoWpGtqeox60pgP_fkrcvuXwaifghpeWF1KDw9U3J7BjuhgrSl8gS639_AGaBFa2OOogt-nEZXMeVPG6P8fHux0KNrfQYe44O8ZUsEzh3iq6zsTBVBytXS6vQ-M4d1GWNuUn5wGyvO7nhHKKOMIUTEix065iYxbzJHC94q2oQMKFeok6YMNnhOQxZzwkUwEpNQUmpFjnEUvlCH2crqTLBQ" />
                     </div>
-                    
-                    <div className="grid-personal-row2" style={{ marginBottom: '0.75rem' }}>
-                        <div>
-                            <label style={labelStyle}>Father's Name *</label>
-                            <input type="text" className="input-grey" id="fatherName" value={formData.fatherName} onChange={handleChange} placeholder="Enter father's name" required />
+                    {isSidebarOpen && (
+                        <div className="doctor-info">
+                            <p className="doctor-name">{doctorProfile.name}</p>
+                            <p className="doctor-title">{doctorProfile.designation}</p>
                         </div>
-                        <div>
-                            <label style={labelStyle}>Contact Number *</label>
-                            <input type="text" className="input-grey" id="mobile" value={formData.mobile} onChange={handleChange} placeholder="10-digit number" required />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Email Address</label>
-                            <input type="email" className="input-grey" id="email" value={formData.email} onChange={handleChange} placeholder="example@mail.com" />
-                        </div>
-                    </div>
+                    )}
+                </div>
 
-                    <div className="form-section-title">Address</div>
-                    <div style={{ marginBottom: '0.75rem' }}>
-                        <textarea className="input-grey" id="address" value={formData.address} onChange={handleChange} placeholder="Enter full address..." rows="1" style={{ resize: 'vertical' }} required></textarea>
-                    </div>
+                <nav className="sidebar-nav">
+                    <button className="nav-item" onClick={() => navigate('/home')}>
+                        <span className="material-symbols-outlined">dashboard</span>
+                        {isSidebarOpen && <span>Dashboard</span>}
+                    </button>
+                    <button className="nav-item" onClick={() => navigate('/patients')}>
+                        <span className="material-symbols-outlined">group</span>
+                        {isSidebarOpen && <span>Patients</span>}
+                    </button>
+                    <button className="nav-item active">
+                        <span className="material-symbols-outlined">add_circle</span>
+                        {isSidebarOpen && <span>New Patient</span>}
+                    </button>
+                    <button className="nav-item">
+                        <span className="material-symbols-outlined">assessment</span>
+                        {isSidebarOpen && <span>Reports</span>}
+                    </button>
+                    <button className="nav-item">
+                        <span className="material-symbols-outlined">calendar_today</span>
+                        {isSidebarOpen && <span>Appointments</span>}
+                    </button>
+                    <button className="nav-item" onClick={() => navigate('/profile')}>
+                        <span className="material-symbols-outlined">settings</span>
+                        {isSidebarOpen && <span>Settings</span>}
+                    </button>
+                </nav>
 
-                    {/* CLINICAL DETAILS & INVESTIGATION BUTTON */}
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '1rem', marginBottom: '0.5rem' }}>
-                        <div className="form-section-title" style={{ margin: 0 }}>Clinical Details</div>
-                        <button type="button" className="btn-green-light" style={{ padding: '0.4rem 1rem', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }} onClick={() => setIsInvModalOpen(true)}>
-                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5"><path strokeLinecap="round" strokeLinejoin="round" d="M12 4v16m8-8H4"></path></svg>
-                            Add Investigation
-                        </button>
+                <div className="sidebar-footer">
+                    <div className="theme-toggle-container">
+                        <div className="toggle-switch" onClick={toggleTheme}>
+                            <input type="checkbox" checked={isDark} readOnly />
+                            <span className="slider"></span>
+                        </div>
+                        {isSidebarOpen && <span className="toggle-label">Dark Mode</span>}
                     </div>
+                    <button className="logout-btn" onClick={handleLogout}>
+                        <span className="material-symbols-outlined">logout</span>
+                        {isSidebarOpen && <span>Logout</span>}
+                    </button>
+                </div>
+            </aside>
 
-                    <div className="grid-2" style={{ marginBottom: '0.75rem' }}>
-                        <div>
-                            <label style={labelStyle}>Chief Complaint *</label>
-                            <textarea className="input-grey" id="chiefComplaint" value={formData.chiefComplaint} onChange={handleChange} placeholder="Enter chief complaint..." rows="2" style={{ resize: 'vertical' }} required></textarea>
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Medicine *</label>
-                            <textarea className="input-grey" id="medicine" value={formData.medicine} onChange={handleChange} placeholder="Enter prescribed medicine..." rows="2" style={{ resize: 'vertical' }} required></textarea>
-                        </div>
+            {/* MAIN CONTENT */}
+            <main className="main-content form-main">
+                <header className="page-header">
+                    <h1>New Patient Registration</h1>
+                    <div className="header-actions">
+                        <button className="icon-btn-header"><span className="material-symbols-outlined">notifications</span></button>
+                        <div className="header-divider"></div>
+                        <span className="header-date">{getFormattedHeaderDate()}</span>
                     </div>
+                </header>
 
-                    <div className="form-section-title">Billing Details</div>
-                    <div className="grid-4-address" style={{ marginBottom: '1rem' }}>
-                        <div>
-                            <label style={labelStyle}>Total *</label>
-                            <input type="number" className="input-grey" id="total" value={formData.total} onChange={handleChange} placeholder="0" min="0" required />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Cartage *</label>
-                            <input type="number" className="input-grey" id="cartage" value={formData.cartage} onChange={handleChange} placeholder="0" min="0" required />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Conveyance *</label>
-                            <input type="number" className="input-grey" id="conveyance" value={formData.conveyance} onChange={handleChange} placeholder="0" min="0" required />
-                        </div>
-                        <div>
-                            <label style={{ ...labelStyle, color: 'var(--primary)', fontWeight: 800 }}>Grand Total</label>
-                            <input type="text" className="input-grey" value={grandTotal} readOnly style={{ backgroundColor: '#ecfdf5', fontWeight: 800, color: '#059669', borderColor: '#10b981' }} />
-                        </div>
-                    </div>
+                {/* FORM CONTAINER */}
+                <section className="form-card-container glass-panel">
+                    <form ref={formRef} onSubmit={handleInitialSubmit} className="patient-form custom-scrollbar">
+                        
+                        {/* PERSONAL INFORMATION */}
+                        <div className="form-section">
+                            <div className="section-title">
+                                <span className="title-bar"></span>
+                                <h3>Personal Information</h3>
+                            </div>
 
-                    <div className="form-actions" style={{ marginTop: '1.5rem', display: 'flex', gap: '1rem' }}>
-                        <button type="submit" className="btn-save" disabled={loading} style={{ flex: 1 }}>
-                            {loading ? 'Processing...' : 'Save Patient'}
-                        </button>
-                        <button type="button" className="btn-cancel" onClick={() => navigate('/home')} disabled={loading} style={{ flex: 1 }}>
-                            Cancel
-                        </button>
+                            <div className="form-grid grid-personal-top">
+                                <div className="form-group col-span-2">
+                                    <label>Patient's Name *</label>
+                                    <input type="text" id="patientName" value={formData.patientName} onChange={handleChange} placeholder="Enter name" className="form-input" required autoFocus />
+                                </div>
+                                <div className="form-group">
+                                    <label>Date *</label>
+                                    <input type="date" id="visitDate" value={formData.visitDate} onChange={handleChange} className="form-input bg-locked" required />
+                                </div>
+                                <div className="form-group">
+                                    <label>Age *</label>
+                                    <input type="number" id="age" value={formData.age} onChange={handleChange} placeholder="Years" className="form-input" required />
+                                </div>
+                                <div className="form-group">
+                                    <label>Gender *</label>
+                                    <div className="select-wrapper">
+                                        <select id="gender" value={formData.gender} onChange={handleChange} className="form-input appearance-none" required>
+                                            <option value="" disabled>Select</option>
+                                            <option value="male">Male</option>
+                                            <option value="female">Female</option>
+                                            <option value="other">Other</option>
+                                        </select>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div className="form-grid grid-personal-bottom">
+                                <div className="form-group col-span-2">
+                                    <label>Father's Name *</label>
+                                    <input type="text" id="fatherName" value={formData.fatherName} onChange={handleChange} placeholder="Enter father's name" className="form-input" required />
+                                </div>
+                                <div className="form-group">
+                                    <label>Contact Number *</label>
+                                    <input type="tel" id="mobile" value={formData.mobile} onChange={handleChange} placeholder="10-digit number" className="form-input" required />
+                                </div>
+                                <div className="form-group col-span-2">
+                                    <label>Email Address</label>
+                                    <input type="email" id="email" value={formData.email} onChange={handleChange} placeholder="example@gmail.com" className="form-input" />
+                                </div>
+                            </div>
+
+                            <div className="form-group full-width">
+                                <label>Address</label>
+                                <textarea id="address" value={formData.address} onChange={handleChange} placeholder="Enter full address..." rows="1" className="form-input resize-y"></textarea>
+                            </div>
+                        </div>
+
+                        {/* CLINICAL DETAILS */}
+                        <div className="form-section mt-4">
+                            <div className="section-title space-between">
+                                <div className="flex-title">
+                                    <span className="title-bar"></span>
+                                    <h3>Clinical Details</h3>
+                                </div>
+                                <button type="button" onClick={() => setIsInvModalOpen(true)} className="btn-pill-outline">
+                                    <span className="material-symbols-outlined">add_circle</span> Add Investigation
+                                </button>
+                            </div>
+
+                            <div className="form-grid grid-2">
+                                <div className="form-group">
+                                    <label>Chief Complaint *</label>
+                                    <textarea id="chiefComplaint" value={formData.chiefComplaint} onChange={handleChange} placeholder="Enter chief complaint..." rows="2" className="form-input resize-y" required></textarea>
+                                </div>
+                                <div className="form-group">
+                                    <label>Medicine *</label>
+                                    <textarea id="medicine" value={formData.medicine} onChange={handleChange} placeholder="Enter prescribed medicine..." rows="2" className="form-input resize-y" required></textarea>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* BILLING DETAILS */}
+                        <div className="form-section mt-4">
+                            <div className="section-title">
+                                <span className="title-bar"></span>
+                                <h3>Billing Details</h3>
+                            </div>
+
+                            <div className="form-grid grid-4">
+                                <div className="form-group">
+                                    <label>Total *</label>
+                                    <input type="number" id="total" value={formData.total} onChange={handleChange} placeholder="0" min="0" className="form-input" required />
+                                </div>
+                                <div className="form-group">
+                                    <label>Cartage *</label>
+                                    <input type="number" id="cartage" value={formData.cartage} onChange={handleChange} placeholder="0" min="0" className="form-input" required />
+                                </div>
+                                <div className="form-group">
+                                    <label>Conveyance *</label>
+                                    <input type="number" id="conveyance" value={formData.conveyance} onChange={handleChange} placeholder="0" min="0" className="form-input" required />
+                                </div>
+                                <div className="form-group">
+                                    <label className="text-primary-bold">Grand Total</label>
+                                    <input type="text" value={grandTotal} className="form-input input-highlight" readOnly />
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+
+                    {/* BOTTOM BAR ACTION AREA */}
+                    <div className="form-bottom-bar">
+                        <div className="mandatory-text">
+                            <span className="material-symbols-outlined">info</span> * mandatory fields
+                        </div>
+                        <div className="action-btns">
+                            <button type="button" onClick={() => navigate('/home')} disabled={loading} className="btn-cancel">Cancel</button>
+                            {/* Triggers the form submission programmatically */}
+                            <button type="button" onClick={() => formRef.current.requestSubmit()} disabled={loading} className="btn-save shadow-btn">
+                                <span className="material-symbols-outlined">person_add_alt</span>
+                                {loading ? 'Processing...' : 'Save Patient'}
+                            </button>
+                        </div>
                     </div>
-                </form>
-            </div>
+                </section>
+            </main>
 
             {/* --- INVESTIGATION MODAL --- */}
             {isInvModalOpen && (
                 <div className="modal-overlay" onClick={() => setIsInvModalOpen(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '500px', padding: '2rem' }}>
-                        <div className="modal-header" style={{ marginBottom: '1.5rem', paddingBottom: '1rem' }}>
-                            <h2 style={{ fontSize: '1.4rem', margin: 0, color: 'var(--text-main)' }}>Investigations / Tests</h2>
-                            <button className="close-btn" onClick={() => setIsInvModalOpen(false)}>×</button>
+                    <div className="modal-content large" onClick={e => e.stopPropagation()}>
+                        <div className="modal-header border-b">
+                            <h2>Add New Investigation</h2>
+                            <button className="close-btn" onClick={() => setIsInvModalOpen(false)}><span className="material-symbols-outlined">close</span></button>
                         </div>
                         
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1rem' }}>
-                            Enter the details of any tests or investigations prescribed for this patient.
-                        </p>
-                        
-                        <textarea 
-                            className="input-grey" 
-                            rows="5" 
-                            placeholder="E.g., Complete Blood Count (CBC), X-Ray Chest..."
-                            value={investigationText}
-                            onChange={(e) => setInvestigationText(e.target.value)}
-                            style={{ resize: 'vertical', marginBottom: '1.5rem' }}
-                            autoFocus
-                        ></textarea>
+                        <div className="modal-body space-y">
+                            <div className="grid-2 gap-4">
+                                <div className="form-group">
+                                    <label>Investigation Type *</label>
+                                    <div className="select-wrapper">
+                                        <select className="form-input appearance-none">
+                                            <option value="">Select type</option>
+                                            <option>Blood Test</option>
+                                            <option>Urine Test</option>
+                                            <option>X-Ray</option>
+                                            <option>ECG</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="form-group">
+                                    <label>Test Name / Description *</label>
+                                    <input type="text" placeholder="e.g. Complete Blood Count (CBC)" className="form-input" />
+                                </div>
+                                <div className="form-group full-width">
+                                    <label>Notes / Instructions</label>
+                                    <textarea placeholder="Any special instructions for the patient or lab..." rows="4" 
+                                              value={investigationText}
+                                              onChange={(e) => setInvestigationText(e.target.value)}
+                                              className="form-input resize-y"></textarea>
+                                </div>
+                            </div>
+                        </div>
 
-                        <div style={{ display: 'flex', gap: '1rem' }}>
-                            <button type="button" className="btn-cancel" style={{ flex: 1 }} onClick={() => setIsInvModalOpen(false)}>Cancel</button>
-                            <button type="button" className="btn-save" style={{ flex: 1 }} onClick={() => setIsInvModalOpen(false)}>Save Tests</button>
+                        <div className="modal-footer border-t">
+                            <button type="button" className="btn-cancel" onClick={() => setIsInvModalOpen(false)}>Cancel</button>
+                            <button type="button" className="btn-save shadow-btn" onClick={() => setIsInvModalOpen(false)}>
+                                <span className="material-symbols-outlined">add</span> Add Investigation
+                            </button>
                         </div>
                     </div>
                 </div>
@@ -301,21 +449,19 @@ const NewPatient = () => {
             {/* --- SAVE CONFIRMATION MODAL --- */}
             {showConfirmModal && (
                 <div className="modal-overlay" onClick={() => setShowConfirmModal(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '450px', textAlign: 'center', padding: '3rem' }}>
-                        <div style={{ background: '#dcfce7', width: '64px', height: '64px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto', color: '#10b981' }}>
-                            <svg width="32" height="32" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" d="M8 7H5a2 2 0 00-2 2v9a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-3m-1 4l-3 3m0 0l-3-3m3 3V4"></path></svg>
-                        </div>
-                        <h2 style={{ marginBottom: '1rem', color: 'var(--text-main)', fontSize: '1.5rem' }}>Confirm Patient Save</h2>
-                        <p style={{ color: 'var(--text-muted)', marginBottom: '2rem', fontSize: '1.05rem', lineHeight: '1.5' }}>Are you sure you want to save <strong>{formData.patientName}</strong> to the database?</p>
+                    <div className="modal-content text-center padding-lg" onClick={e => e.stopPropagation()}>
+                        <div className="modal-icon-green"><span className="material-symbols-outlined">how_to_reg</span></div>
+                        <h2 className="modal-title">Confirm Patient Save</h2>
+                        <p className="modal-desc">Are you sure you want to save <strong>{formData.patientName || 'this patient'}</strong> to the database?</p>
                         
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                            <button className="btn-cancel" style={{ flex: 1 }} onClick={() => setShowConfirmModal(false)}>Review Again</button>
-                            <button className="btn-save" style={{ flex: 1 }} onClick={confirmSavePatient}>Yes, Save Record</button>
+                        <div className="modal-actions-row mt-4">
+                            <button className="btn-modal-cancel" onClick={() => setShowConfirmModal(false)}>Review Again</button>
+                            <button className="btn-modal-confirm" onClick={confirmSavePatient}>Yes, Save Record</button>
                         </div>
                     </div>
                 </div>
             )}
-        </>
+        </div>
     );
 };
 
