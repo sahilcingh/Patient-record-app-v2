@@ -20,36 +20,6 @@ const PatientsList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('all'); 
     
-    // --- BULLETPROOF DYNAMIC PAGINATION ENGINE ---
-    const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(8); // Better fallback
-
-    useEffect(() => {
-        const calculateItemsPerPage = () => {
-            // 1. Measure the exact physical height of the user's browser window
-            const screenHeight = window.innerHeight;
-            
-            // 2. Subtract the static UI elements (Top Header, Search Bar, Table Header, and Footer)
-            // These elements take up roughly 380px of vertical space combined.
-            const availableTableHeight = screenHeight - 380;
-            
-            // 3. Each patient row is exactly 84px tall
-            // CRITICAL FIX: We use Math.ceil() to aggressively round UP. 
-            // It is much better to over-render by 1 row (creating a tiny scrollbar inside the table) 
-            // than to under-render and leave a massive white void at the bottom!
-            const rowsToShow = Math.ceil(availableTableHeight / 84);
-            
-            setItemsPerPage(Math.max(4, rowsToShow));
-        };
-
-        // Run immediately on load
-        calculateItemsPerPage();
-        
-        // Recalculate instantly if the user resizes their window
-        window.addEventListener('resize', calculateItemsPerPage);
-        return () => window.removeEventListener('resize', calculateItemsPerPage);
-    }, []);
-
     // Modal States
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [historyLoading, setHistoryLoading] = useState(false);
@@ -109,20 +79,6 @@ const PatientsList = () => {
             return true;
         });
     }, [patients, searchTerm, activeTab]);
-
-    // Reset to page 1 if user changes search or filters
-    useEffect(() => {
-        setCurrentPage(1);
-    }, [searchTerm, activeTab]);
-
-    // --- PAGINATION CALCS ---
-    const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
-    
-    if (currentPage > totalPages && totalPages > 0) {
-        setCurrentPage(totalPages);
-    }
-
-    const paginatedPatients = filteredPatients.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
 
     // --- HELPER FUNCTIONS ---
     const formatName = (name) => {
@@ -302,11 +258,12 @@ const PatientsList = () => {
                         <div className="col-action"></div>
                     </div>
 
+                    {/* SCROLLABLE LIST BODY */}
                     <div className="list-body custom-scrollbar">
                         {loading ? (
                             <div className="empty-state">Loading directory...</div>
-                        ) : paginatedPatients.length > 0 ? (
-                            paginatedPatients.map((p, index) => {
+                        ) : filteredPatients.length > 0 ? (
+                            filteredPatients.map((p, index) => {
                                 const cleanName = formatName(p.PatientName);
                                 return (
                                     <div key={index} className="patient-row" onClick={() => handleRowClick(p)}>
@@ -333,46 +290,11 @@ const PatientsList = () => {
                         )}
                     </div>
 
-                    {/* PAGINATION FOOTER */}
-                    <div className="pagination-footer">
+                    {/* SIMPLIFIED FOOTER */}
+                    <div className="pagination-footer" style={{ justifyContent: 'center' }}>
                         <p className="showing-text">
-                            Showing <strong>{filteredPatients.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredPatients.length)}</strong> of <strong>{filteredPatients.length}</strong> patients
+                            Showing <strong>{filteredPatients.length}</strong> patients
                         </p>
-                        
-                        <div className="pagination-controls">
-                            <button 
-                                className="page-nav-btn" 
-                                disabled={currentPage === 1} 
-                                onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                            >
-                                <span className="material-symbols-outlined">chevron_left</span>
-                            </button>
-                            
-                            {[...Array(totalPages)].map((_, i) => {
-                                if (i + 1 === 1 || i + 1 === totalPages || (i + 1 >= currentPage - 1 && i + 1 <= currentPage + 1)) {
-                                    return (
-                                        <button 
-                                            key={i} 
-                                            className={`page-num-btn ${currentPage === i + 1 ? 'active' : ''}`}
-                                            onClick={() => setCurrentPage(i + 1)}
-                                        >
-                                            {i + 1}
-                                        </button>
-                                    );
-                                } else if ((i + 1 === currentPage - 2 && currentPage > 3) || (i + 1 === currentPage + 2 && currentPage < totalPages - 2)) {
-                                    return <span key={i} style={{color: 'var(--text-muted)', padding: '0 0.2rem'}}>...</span>;
-                                }
-                                return null;
-                            })}
-
-                            <button 
-                                className="page-nav-btn" 
-                                disabled={currentPage === totalPages || totalPages === 0} 
-                                onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                            >
-                                <span className="material-symbols-outlined">chevron_right</span>
-                            </button>
-                        </div>
                     </div>
                 </div>
             </main>
