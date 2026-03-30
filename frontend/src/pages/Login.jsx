@@ -331,11 +331,7 @@ const Login = () => {
                     </div>
                     
                     <div className="profile-img-container">
-                        <img 
-                            alt="Doctor Profile" 
-                            className="profile-img" 
-                            src="https://images.unsplash.com/photo-1612349317150-e413f6a5b16d?q=80&w=400&auto=format&fit=crop" 
-                        />
+                        <img alt="Friendly male doctor" class="w-full aspect-square rounded-2xl object-cover shadow-lg border-2 border-white dark:border-zinc-800" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQIwwzdEfZjGHKblsK-S4HPcRcy74Z0mTkxm_aS6Gt1jSiA1vRBb7UEHdwmASvWxydQQSPcbcxwmIvbDTdLa3ZUHvmnZiC-RBhiyoBYwLIX3Codq7J4RkOLSK7KeRKjEOJhKXZaVIzB-jmjcvGb9Yj16em7xQbSyhmdAq6fMjt-11jkT1uURLGsr2ma7DKVsHljawlKdaXz_dLMgJbbX-2hfc-fVmsY4U3pxzn-mFG0pWheXazFdEQIsw36oN7lga9cB4SURWRnjk"/>
                         <div className="portal-badge">
                             <div className="badge-icon">
                                 <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
