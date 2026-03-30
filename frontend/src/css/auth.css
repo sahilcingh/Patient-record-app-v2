@@ -75,26 +75,49 @@ body { margin: 0; padding: 0; }
     background-color: #18181b; 
 }
 
-/* ABOUT & HELP OPTIONS - Pinned explicitly to Top Right */
+/* ABOUT & HELP OPTIONS - Heavily locked down to kill global CSS interference */
 .top-nav {
-    position: absolute;
-    top: 2rem;
-    right: 2.5rem;
-    display: flex;
-    align-items: center;
-    gap: 1.5rem;
+    position: absolute !important;
+    top: 2.5rem !important;
+    right: 2.5rem !important;
+    left: auto !important; /* Stops it from stretching to the left */
+    width: max-content !important; /* Shrink-wraps the box tightly around the 3 buttons */
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    gap: 1.5rem !important; /* Locks the exact spacing */
     font-size: 0.8rem;
     color: #a1a1aa;
     font-weight: 600;
+    margin: 0 !important;
+    padding: 0 !important;
 }
-.top-nav span { cursor: pointer; transition: color 0.2s; }
-.top-nav span:hover { color: #ffffff; }
+
+.top-nav span { 
+    cursor: pointer; 
+    transition: color 0.2s; 
+}
+
+.top-nav span:hover { 
+    color: #ffffff; 
+}
+
 .book-btn {
-    background: rgba(16, 185, 129, 0.1); color: #10b981;
-    border: none; padding: 8px 16px; border-radius: 20px; font-weight: 700; cursor: pointer;
+    background: rgba(16, 185, 129, 0.1) !important; 
+    color: #10b981 !important;
+    border: none !important; 
+    padding: 8px 16px !important; 
+    border-radius: 20px !important; 
+    font-weight: 700 !important; 
+    cursor: pointer !important;
     transition: background 0.2s, color 0.2s;
+    margin-left: 0.5rem !important;
 }
-.book-btn:hover { background: #10b981; color: #fff; }
+
+.book-btn:hover { 
+    background: #10b981 !important; 
+    color: #fff !important; 
+}
 
 /* THE FORM CONTAINER - Properly sized and centered */
 .form-container {
