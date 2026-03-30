@@ -27,14 +27,15 @@ function App() {
         <Route path="/contact" element={<Contact />} />
         <Route path="/help" element={<Help />} />
         
-        {/* NEW DASHBOARD - Has its own built-in sidebar now! Do not wrap in Layout */}
+        {/* --- NEW PAGES (These have their own built-in sidebars now) --- */}
+        {/* DO NOT wrap these in <Layout> */}
         <Route path="/home" element={<Home />} />
+        <Route path="/profile" element={<Profile />} />
 
-        {/* Other Authenticated Pages (Still use the old Layout/Sidebar for now) */}
+        {/* --- OLD PAGES (Still using the old Layout wrapper for now) --- */}
         <Route path="/new-patient" element={<Layout><NewPatient /></Layout>} />
         <Route path="/old-patient" element={<Layout><OldPatient /></Layout>} />
         <Route path="/patients" element={<Layout><PatientsList /></Layout>} />
-        <Route path="/profile" element={<Layout><Profile /></Layout>} />
       </Routes>
     </Router>
   );
