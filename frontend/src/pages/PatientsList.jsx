@@ -20,34 +20,32 @@ const PatientsList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('all'); 
     
-    // --- DYNAMIC PAGINATION ENGINE ---
+    // --- UPGRADED DYNAMIC PAGINATION ENGINE ---
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(5); // Default fallback
-    const listContainerRef = useRef(null); // Reference to measure available height
+    const [itemsPerPage, setItemsPerPage] = useState(6); // Default fallback
+    const listContainerRef = useRef(null); 
 
     useEffect(() => {
-        const calculateItemsPerPage = () => {
-            if (listContainerRef.current) {
-                // 1. Measure the exact pixel height available inside the list container
-                const availableHeight = listContainerRef.current.clientHeight;
-                
-                // 2. Estimate row height (Padding + Content + Gap ≈ 82px)
-                const estimatedRowHeight = 82; 
-                
-                // 3. Calculate how many whole rows can fit perfectly
-                const maxRowsThatFit = Math.floor(availableHeight / estimatedRowHeight);
-                
-                // Ensure we always show at least 3 rows, even on tiny screens
-                setItemsPerPage(Math.max(3, maxRowsThatFit));
-            }
-        };
+        if (!listContainerRef.current) return;
 
-        // Run calculation immediately on load
-        calculateItemsPerPage();
-        
-        // Recalculate anytime the user resizes their browser window
-        window.addEventListener('resize', calculateItemsPerPage);
-        return () => window.removeEventListener('resize', calculateItemsPerPage);
+        // ResizeObserver watches the exact pixel dimensions of the container 
+        // after all CSS/Flexbox stretching has finished.
+        const observer = new ResizeObserver((entries) => {
+            for (let entry of entries) {
+                const availableHeight = entry.contentRect.height;
+                
+                // A row is roughly 84px tall (76px content + 8px gap).
+                // Subtract 10px for the container's top/bottom padding buffer.
+                const rowHeight = 84; 
+                const calculatedRows = Math.floor((availableHeight - 10) / rowHeight);
+                
+                setItemsPerPage(Math.max(3, calculatedRows));
+            }
+        });
+
+        observer.observe(listContainerRef.current);
+
+        return () => observer.disconnect();
     }, []);
 
     // Modal States
@@ -118,7 +116,6 @@ const PatientsList = () => {
     // --- PAGINATION CALCS ---
     const totalPages = Math.ceil(filteredPatients.length / itemsPerPage);
     
-    // Safety check: If screen shrinks and current page no longer exists, drop back to last available page
     if (currentPage > totalPages && totalPages > 0) {
         setCurrentPage(totalPages);
     }
@@ -304,7 +301,7 @@ const PatientsList = () => {
                         <div className="col-action"></div>
                     </div>
 
-                    {/* DYNAMIC HEIGHT CONTAINER */}
+                    {/* REFS ADDED HERE FOR PERFECT MEASUREMENT */}
                     <div className="list-body custom-scrollbar" ref={listContainerRef}>
                         {loading ? (
                             <div className="empty-state">Loading directory...</div>
@@ -352,7 +349,6 @@ const PatientsList = () => {
                             </button>
                             
                             {[...Array(totalPages)].map((_, i) => {
-                                // Smart pagination: Only show current, first, last, and +/- 1 page
                                 if (i + 1 === 1 || i + 1 === totalPages || (i + 1 >= currentPage - 1 && i + 1 <= currentPage + 1)) {
                                     return (
                                         <button 
