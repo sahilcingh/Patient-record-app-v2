@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, useRef } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../css/dashboard.css';
 import '../css/patients.css'; 
@@ -20,32 +20,28 @@ const PatientsList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('all'); 
     
-    // --- UPGRADED DYNAMIC PAGINATION ENGINE ---
+    // --- BULLETPROOF PAGINATION ENGINE ---
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(6); // Default fallback
-    const listContainerRef = useRef(null); 
+    const [itemsPerPage, setItemsPerPage] = useState(8); // Better fallback
 
     useEffect(() => {
-        if (!listContainerRef.current) return;
+        const calculateItemsPerPage = () => {
+            // Total fixed vertical space (headers, toolbars, footer, padding) is ~360px
+            // Each patient row (including the 8px gap) is exactly 86px tall.
+            const availableHeight = window.innerHeight - 360;
+            const rowHeight = 86;
+            const maxRowsThatFit = Math.floor(availableHeight / rowHeight);
+            
+            // Ensure we always show at least 4 rows, even on tiny laptop screens
+            setItemsPerPage(Math.max(4, maxRowsThatFit));
+        };
 
-        // ResizeObserver watches the exact pixel dimensions of the container 
-        // after all CSS/Flexbox stretching has finished.
-        const observer = new ResizeObserver((entries) => {
-            for (let entry of entries) {
-                const availableHeight = entry.contentRect.height;
-                
-                // A row is roughly 84px tall (76px content + 8px gap).
-                // Subtract 10px for the container's top/bottom padding buffer.
-                const rowHeight = 84; 
-                const calculatedRows = Math.floor((availableHeight - 10) / rowHeight);
-                
-                setItemsPerPage(Math.max(3, calculatedRows));
-            }
-        });
-
-        observer.observe(listContainerRef.current);
-
-        return () => observer.disconnect();
+        // Run calculation immediately on load
+        calculateItemsPerPage();
+        
+        // Recalculate flawlessly anytime the user resizes their browser window
+        window.addEventListener('resize', calculateItemsPerPage);
+        return () => window.removeEventListener('resize', calculateItemsPerPage);
     }, []);
 
     // Modal States
@@ -301,8 +297,8 @@ const PatientsList = () => {
                         <div className="col-action"></div>
                     </div>
 
-                    {/* REFS ADDED HERE FOR PERFECT MEASUREMENT */}
-                    <div className="list-body custom-scrollbar" ref={listContainerRef}>
+                    {/* LIST BODY */}
+                    <div className="list-body custom-scrollbar">
                         {loading ? (
                             <div className="empty-state">Loading directory...</div>
                         ) : paginatedPatients.length > 0 ? (
