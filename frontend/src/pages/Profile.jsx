@@ -1,25 +1,32 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import '../css/dashboard.css'; // Re-use main layout styles
+import '../css/profile.css';   // New styles specific to profile
 
 const Profile = () => {
     const navigate = useNavigate();
     const [loading, setLoading] = useState(false);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     
+    // Theme State
+    const [isDark, setIsDark] = useState(() => {
+        return localStorage.getItem('darkMode') === 'true'; 
+    });
+
     // Modal States
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     
     // Profile State 
     const [formData, setFormData] = useState({
-        doctorName: '',
-        designation: '', 
-        username: '',
-        password: '',
-        confirmPassword: '',
-        clinicName: '',
-        clinicAddress: '',
-        clinicTimings: ''
+        doctorName: '', designation: '', username: '',
+        password: '', confirmPassword: '', clinicName: '',
+        clinicAddress: '', clinicTimings: ''
     });
+
+    // UI States for Passwords
+    const [showPassword, setShowPassword] = useState(false);
+    const [showConfirm, setShowConfirm] = useState(false);
 
     // --- LOAD DATA ON MOUNT ---
     useEffect(() => {
@@ -34,8 +41,7 @@ const Profile = () => {
                 if (data.success) {
                     setFormData({
                         username: data.profile.Username || '',
-                        password: '', 
-                        confirmPassword: '',
+                        password: '', confirmPassword: '',
                         doctorName: data.profile.DoctorName || '',
                         designation: data.profile.DoctorDesi || '',
                         clinicName: data.profile.CompName || '',
@@ -47,7 +53,6 @@ const Profile = () => {
                 console.error("Failed to load profile", error);
             }
         };
-
         fetchProfile();
     }, []);
 
@@ -56,23 +61,29 @@ const Profile = () => {
         setFormData(prev => ({ ...prev, [id]: value }));
     };
 
-    // --- STEP 1: TRIGGER CONFIRMATION ---
+    const toggleTheme = () => {
+        const newTheme = !isDark;
+        setIsDark(newTheme);
+        localStorage.setItem('darkMode', newTheme);
+    };
+
+    const handleLogout = () => {
+        localStorage.removeItem('doctorToken');
+        navigate('/');
+    };
+
+    // --- SAVE LOGIC ---
     const handleSaveRequest = (e) => {
         e.preventDefault();
-        
         if (formData.password && formData.password !== formData.confirmPassword) {
             alert("Passwords do not match!"); 
             return;
         }
-
-        // Show confirmation popup instead of saving immediately
         setShowConfirmModal(true);
     };
 
-    // --- STEP 2: EXECUTE ACTUAL SAVE TO DATABASE ---
     const executeSave = async () => {
         setLoading(true);
-        
         try {
             const token = localStorage.getItem('doctorToken');
             const response = await fetch('https://patient-record-app-drly.onrender.com/api/profile', {
@@ -87,22 +98,16 @@ const Profile = () => {
             const data = await response.json();
 
             if (data.success) {
-                setShowConfirmModal(false); // Close confirmation
-                setShowSuccessModal(true);  // Show success!
-                
+                setShowConfirmModal(false);
+                setShowSuccessModal(true); 
                 if (formData.doctorName) localStorage.setItem('doctorName', formData.doctorName);
                 setFormData(prev => ({ ...prev, password: '', confirmPassword: '' }));
-                
-                setTimeout(() => {
-                    setShowSuccessModal(false);
-                }, 3000);
-
+                setTimeout(() => setShowSuccessModal(false), 3000);
             } else {
                 setShowConfirmModal(false);
                 alert(data.message || "Failed to save profile.");
             }
         } catch (error) {
-            console.error("Save error:", error);
             setShowConfirmModal(false);
             alert("Network error while saving.");
         } finally {
@@ -110,188 +115,316 @@ const Profile = () => {
         }
     };
 
-    // --- SHARED STYLES ---
-    const labelStyle = { 
-        fontSize: '0.8rem', color: '#64748b', 
-        marginBottom: '0.5rem', 
-        display: 'block', fontWeight: '700', textTransform: 'uppercase', letterSpacing: '0.05em'
+    // --- PASSWORD STRENGTH LOGIC ---
+    const getPasswordStrength = () => {
+        const pass = formData.password;
+        if (!pass) return { width: '0%', color: 'bg-slate-200', text: 'Enter a password to check strength', textColor: 'text-slate-500' };
+        
+        let score = 0;
+        if (pass.length >= 8) score += 1;
+        if (pass.length >= 12) score += 1;
+        if (/[a-z]/.test(pass) && /[A-Z]/.test(pass)) score += 1;
+        if (/\d/.test(pass)) score += 1;
+        if (/[^a-zA-Z0-9]/.test(pass)) score += 1;
+
+        if (score <= 2) return { width: '33%', color: '#ef4444', text: 'Weak - add more characters and symbols', textColor: '#ef4444' };
+        if (score <= 3) return { width: '66%', color: '#f59e0b', text: 'Medium - consider adding special characters', textColor: '#f59e0b' };
+        return { width: '100%', color: '#10b981', text: 'Strong password - excellent!', textColor: '#10b981' };
     };
+    const strength = getPasswordStrength();
 
-    const inputStyle = {
-        width: '100%', padding: '0.85rem 1.2rem', borderRadius: '10px', 
-        border: '1px solid #cbd5e1', backgroundColor: '#f8fafc', 
-        fontSize: '0.95rem', color: '#0f172a', outline: 'none', transition: 'all 0.2s',
-        boxSizing: 'border-box'
-    };
-
-    const cardStyle = {
-        backgroundColor: '#ffffff', borderRadius: '16px', padding: '2.5rem', 
-        marginBottom: '1.5rem', border: '1px solid #e2e8f0', 
-        boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03)',
-        display: 'flex', gap: '3rem', flexWrap: 'wrap'
-    };
-
-    const leftColStyle = { flex: '1', minWidth: '250px', maxWidth: '300px' };
-    const rightColStyle = { flex: '2', minWidth: '300px' };
-
-    // Common overlay style for modals
-    const overlayStyle = {
-        position: 'fixed', top: 0, left: 0, right: 0, bottom: 0,
-        backgroundColor: 'rgba(15, 23, 42, 0.4)',
-        backdropFilter: 'blur(4px)',
-        zIndex: 9999,
-        display: 'flex', alignItems: 'center', justifyContent: 'center'
+    const getInitials = (name) => {
+        if (!name) return "DR";
+        const parts = name.replace('Dr. ', '').trim().split(" ");
+        if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
+        return name.substring(0, 2).toUpperCase();
     };
 
     return (
-        <div style={{ padding: '2.5rem', maxWidth: '1100px', margin: '0 auto', position: 'relative' }}>
+        <div className="dashboard-wrapper" data-theme={isDark ? 'dark' : 'light'}>
             
-            <style>
-                {`
-                    @keyframes popIn {
-                        0% { opacity: 0; transform: scale(0.9) translateY(20px); }
-                        100% { opacity: 1; transform: scale(1) translateY(0); }
-                    }
-                `}
-            </style>
-
-            {/* --- CONFIRMATION MODAL --- */}
-            {showConfirmModal && (
-                <div style={overlayStyle}>
-                    <div style={{ backgroundColor: '#ffffff', padding: '2.5rem', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center', maxWidth: '400px', width: '90%', animation: 'popIn 0.3s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-                        <div style={{ width: '60px', height: '60px', backgroundColor: '#e0f2fe', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
-                            <svg width="30" height="30" fill="none" stroke="#0ea5e9" viewBox="0 0 24 24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <line x1="12" y1="8" x2="12" y2="12"></line>
-                                <line x1="12" y1="16" x2="12.01" y2="16"></line>
-                            </svg>
+            {/* SIDEBAR (Reused from Dashboard) */}
+            <aside className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
+                <div className="sidebar-header">
+                    <button className="menu-btn" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
+                        <span className="material-symbols-outlined">menu</span>
+                    </button>
+                    {isSidebarOpen && (
+                        <div className="logo">
+                            <span className="material-symbols-outlined logo-icon">medical_services</span>
+                            <span className="logo-text">MediFlow</span>
                         </div>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontSize: '1.4rem', fontWeight: 800 }}>Confirm Changes</h3>
-                        <p style={{ margin: '0 0 2rem 0', color: '#64748b', fontSize: '0.95rem', lineHeight: '1.5' }}>
-                            Are you sure you want to save these updates to your profile and clinic settings?
-                        </p>
+                    )}
+                </div>
+
+                <div className="sidebar-profile">
+                    <div className="doctor-avatar">
+                        <img alt="Doctor" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAA5LdANAUa2KwGpdHFThaxvz60QKnY86uujQYa7kzWemiV_fYEzTS1PoWpGtqeox60pgP_fkrcvuXwaifghpeWF1KDw9U3J7BjuhgrSl8gS639_AGaBFa2OOogt-nEZXMeVPG6P8fHux0KNrfQYe44O8ZUsEzh3iq6zsTBVBytXS6vQ-M4d1GWNuUn5wGyvO7nhHKKOMIUTEix065iYxbzJHC94q2oQMKFeok6YMNnhOQxZzwkUwEpNQUmpFjnEUvlCH2crqTLBQ" />
+                    </div>
+                    {isSidebarOpen && (
+                        <div className="doctor-info">
+                            <p className="doctor-name">{formData.doctorName || 'Doctor'}</p>
+                            <p className="doctor-title">Cardiologist</p>
+                        </div>
+                    )}
+                </div>
+
+                <nav className="sidebar-nav">
+                    <button className="nav-item" onClick={() => navigate('/home')}>
+                        <span className="material-symbols-outlined">dashboard</span>
+                        {isSidebarOpen && <span>Dashboard</span>}
+                    </button>
+                    <button className="nav-item" onClick={() => navigate('/patients')}>
+                        <span className="material-symbols-outlined">group</span>
+                        {isSidebarOpen && <span>Patients</span>}
+                    </button>
+                    <button className="nav-item" onClick={() => navigate('/new-patient')}>
+                        <span className="material-symbols-outlined">add_circle</span>
+                        {isSidebarOpen && <span>New Patient</span>}
+                    </button>
+                    <button className="nav-item">
+                        <span className="material-symbols-outlined">assessment</span>
+                        {isSidebarOpen && <span>Reports</span>}
+                    </button>
+                    <button className="nav-item">
+                        <span className="material-symbols-outlined">calendar_today</span>
+                        {isSidebarOpen && <span>Appointments</span>}
+                    </button>
+                    <button className="nav-item active">
+                        <span className="material-symbols-outlined">settings</span>
+                        {isSidebarOpen && <span>Settings</span>}
+                    </button>
+                </nav>
+
+                <div className="sidebar-footer">
+                    <div className="theme-toggle-container">
+                        <div className="toggle-switch" onClick={toggleTheme}>
+                            <input type="checkbox" checked={isDark} readOnly />
+                            <span className="slider"></span>
+                        </div>
+                        {isSidebarOpen && <span className="toggle-label">Dark Mode</span>}
+                    </div>
+                    <button className="logout-btn" onClick={handleLogout}>
+                        <span className="material-symbols-outlined">logout</span>
+                        {isSidebarOpen && <span>Logout</span>}
+                    </button>
+                </div>
+            </aside>
+
+            {/* MAIN PROFILE CONTENT */}
+            <main className="main-content profile-main">
+                <div className="profile-container-inner">
+                    
+                    {/* Hero Banner */}
+                    <div className="profile-hero">
+                        <div className="hero-bg-shapes"></div>
+                        <div className="hero-content">
+                            <div className="hero-avatar-wrapper">
+                                <div className="hero-avatar">{getInitials(formData.doctorName)}</div>
+                                <button className="hero-camera-btn"><span className="material-symbols-outlined">photo_camera</span></button>
+                                <div className="status-dot"></div>
+                            </div>
+                            
+                            <div className="hero-text">
+                                <div className="badge-tag"><span className="dot"></span> Active Account</div>
+                                <h1>{formData.doctorName || 'Dr. S. S. Gupta'}</h1>
+                                <p>{formData.designation || 'M.D. (Homeo) Psychiatrist'}</p>
+                                
+                                <div className="hero-meta">
+                                    <span><span className="material-symbols-outlined">location_on</span> {formData.clinicName || 'Clinic'}</span>
+                                    <span><span className="material-symbols-outlined">schedule</span> Tue - Sun</span>
+                                    <span><span className="material-symbols-outlined">verified</span> Verified</span>
+                                </div>
+                            </div>
+
+                            <div className="hero-actions">
+                                <button title="View"><span className="material-symbols-outlined">visibility</span></button>
+                                <button title="Share"><span className="material-symbols-outlined">share</span></button>
+                                <button title="Download"><span className="material-symbols-outlined">download</span></button>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Nav Tabs */}
+                    <div className="profile-tabs glass-panel">
+                        <button className="tab active"><span className="material-symbols-outlined">person</span> Profile</button>
+                        <button className="tab"><span className="material-symbols-outlined">security</span> Security</button>
+                        <button className="tab"><span className="material-symbols-outlined">notifications</span> Notifications</button>
+                        <button className="tab"><span className="material-symbols-outlined">tune</span> Preferences</button>
+                    </div>
+
+                    {/* Settings Form */}
+                    <form onSubmit={handleSaveRequest} className="settings-forms">
                         
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'center' }}>
-                            <button onClick={() => setShowConfirmModal(false)} disabled={loading} style={{ flex: 1, padding: '0.8rem', backgroundColor: '#f1f5f9', color: '#475569', border: 'none', borderRadius: '10px', fontWeight: 600, cursor: 'pointer', transition: 'background-color 0.2s' }}>
-                                Cancel
-                            </button>
-                            <button onClick={executeSave} disabled={loading} style={{ flex: 1, padding: '0.8rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '10px', fontWeight: 600, cursor: 'pointer', transition: 'background-color 0.2s' }}>
-                                {loading ? 'Saving...' : 'Yes, Save'}
-                            </button>
+                        {/* Account Credentials */}
+                        <div className="settings-card glass-panel">
+                            <div className="settings-header header-green">
+                                <div className="header-icon"><span className="material-symbols-outlined">lock</span></div>
+                                <div className="header-text">
+                                    <h2>Account Credentials</h2>
+                                    <p>Secure your account with strong credentials.</p>
+                                </div>
+                                <div className="secure-badge"><span className="dot"></span> Secure</div>
+                            </div>
+                            
+                            <div className="settings-body two-col">
+                                <div className="body-left">
+                                    <div className="info-box box-green">
+                                        <h4><span className="material-symbols-outlined">tips_and_updates</span> Security Tips</h4>
+                                        <ul>
+                                            <li><span className="material-symbols-outlined">check_circle</span> Use at least 12 characters</li>
+                                            <li><span className="material-symbols-outlined">check_circle</span> Mix uppercase & lowercase</li>
+                                            <li><span className="material-symbols-outlined">check_circle</span> Include numbers & symbols</li>
+                                        </ul>
+                                    </div>
+                                    <div className="info-box box-yellow mt-4">
+                                        <h4><span className="material-symbols-outlined">info</span> Last Updated</h4>
+                                        <p>Password changed <strong>45 days ago</strong></p>
+                                    </div>
+                                </div>
+
+                                <div className="body-right form-fields">
+                                    <div className="form-group">
+                                        <label><span className="material-symbols-outlined">badge</span> Username (Login ID)</label>
+                                        <input type="text" id="username" value={formData.username} onChange={handleChange} className="form-input" />
+                                    </div>
+                                    <div className="form-group">
+                                        <label><span className="material-symbols-outlined">key</span> New Password</label>
+                                        <div className="input-with-action">
+                                            <input type={showPassword ? "text" : "password"} id="password" value={formData.password} onChange={handleChange} placeholder="Enter new password" className="form-input" />
+                                            <button type="button" onClick={() => setShowPassword(!showPassword)} className="icon-btn">
+                                                <span className="material-symbols-outlined">{showPassword ? 'visibility_off' : 'visibility'}</span>
+                                            </button>
+                                        </div>
+                                        {formData.password && (
+                                            <div className="strength-meter">
+                                                <div className="strength-track"><div className="strength-fill" style={{ width: strength.width, backgroundColor: strength.color }}></div></div>
+                                                <p style={{ color: strength.textColor, fontSize: '0.75rem', marginTop: '0.25rem' }}>{strength.text}</p>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="form-group">
+                                        <label><span className="material-symbols-outlined">verified_user</span> Confirm Password</label>
+                                        <div className="input-with-action">
+                                            <input type={showConfirm ? "text" : "password"} id="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm new password" className="form-input" />
+                                            <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="icon-btn">
+                                                <span className="material-symbols-outlined">{showConfirm ? 'visibility_off' : 'visibility'}</span>
+                                            </button>
+                                        </div>
+                                        {formData.confirmPassword && (
+                                            <p style={{ color: formData.password === formData.confirmPassword ? '#10b981' : '#ef4444', fontSize: '0.75rem', marginTop: '0.25rem' }}>
+                                                {formData.password === formData.confirmPassword ? '✓ Passwords match' : '✗ Passwords do not match'}
+                                            </p>
+                                        )}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Personal Information */}
+                        <div className="settings-card glass-panel">
+                            <div className="settings-header header-blue">
+                                <div className="header-icon"><span className="material-symbols-outlined">person</span></div>
+                                <div className="header-text">
+                                    <h2>Personal Information</h2>
+                                    <p>Details as they appear on prescriptions and records.</p>
+                                </div>
+                            </div>
+                            
+                            <div className="settings-body two-col">
+                                <div className="body-left">
+                                    <div className="preview-card glass-panel">
+                                        <h4><span className="material-symbols-outlined">preview</span> Prescription Preview</h4>
+                                        <div className="preview-content">
+                                            <div className="preview-avatar">{getInitials(formData.doctorName)}</div>
+                                            <h3>{formData.doctorName || 'Doctor Name'}</h3>
+                                            <p className="preview-des">{formData.designation || 'Designation'}</p>
+                                            <div className="preview-meta mt-4">
+                                                <span><span className="material-symbols-outlined">local_hospital</span> {formData.clinicName || 'Clinic Name'}</span>
+                                                <span><span className="material-symbols-outlined">location_on</span> {formData.clinicAddress ? formData.clinicAddress.substring(0, 20) + '...' : 'Address'}</span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div className="body-right form-fields">
+                                    <div className="form-group">
+                                        <label><span className="material-symbols-outlined">medical_information</span> Doctor's Full Name</label>
+                                        <input type="text" id="doctorName" value={formData.doctorName} onChange={handleChange} className="form-input" required />
+                                    </div>
+                                    <div className="form-group">
+                                        <label><span className="material-symbols-outlined">school</span> Designation & Qualifications</label>
+                                        <input type="text" id="designation" value={formData.designation} onChange={handleChange} className="form-input" />
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Clinic Details */}
+                        <div className="settings-card glass-panel">
+                            <div className="settings-header header-purple">
+                                <div className="header-icon"><span className="material-symbols-outlined">local_hospital</span></div>
+                                <div className="header-text">
+                                    <h2>Clinic Details</h2>
+                                    <p>Information for prescriptions and documentation.</p>
+                                </div>
+                            </div>
+                            
+                            <div className="settings-body form-fields">
+                                <div className="form-group">
+                                    <label><span className="material-symbols-outlined">business</span> Clinic Name</label>
+                                    <input type="text" id="clinicName" value={formData.clinicName} onChange={handleChange} className="form-input" />
+                                </div>
+                                <div className="form-group">
+                                    <label><span className="material-symbols-outlined">location_on</span> Clinic Address</label>
+                                    <textarea id="clinicAddress" rows="2" value={formData.clinicAddress} onChange={handleChange} className="form-input resize-none"></textarea>
+                                </div>
+                                <div className="form-group">
+                                    <label><span className="material-symbols-outlined">schedule</span> Clinic Timings</label>
+                                    <input type="text" id="clinicTimings" value={formData.clinicTimings} onChange={handleChange} className="form-input" />
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Action Buttons */}
+                        <div className="form-actions-footer glass-panel">
+                            <div className="last-saved"><span className="material-symbols-outlined">info</span> Last saved: <strong>Today</strong></div>
+                            <div className="action-btns">
+                                <button type="button" onClick={() => navigate('/home')} className="btn-cancel"><span className="material-symbols-outlined">close</span> Cancel</button>
+                                <button type="submit" disabled={loading} className="btn-save"><span className="material-symbols-outlined">save</span> {loading ? 'Saving...' : 'Save Changes'}</button>
+                            </div>
+                        </div>
+
+                    </form>
+                </div>
+            </main>
+
+            {/* --- MODALS --- */}
+            {showConfirmModal && (
+                <div className="modal-overlay">
+                    <div className="modal-content text-center">
+                        <div className="modal-icon-blue"><span className="material-symbols-outlined">help</span></div>
+                        <h3 className="modal-title">Confirm Changes</h3>
+                        <p className="modal-desc">Are you sure you want to save these updates to your profile and clinic settings?</p>
+                        <div className="modal-actions-row">
+                            <button onClick={() => setShowConfirmModal(false)} className="btn-modal-cancel">Cancel</button>
+                            <button onClick={executeSave} className="btn-modal-confirm">Yes, Save</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* --- SUCCESS MODAL --- */}
             {showSuccessModal && (
-                <div style={overlayStyle}>
-                    <div style={{ backgroundColor: '#ffffff', padding: '2.5rem', borderRadius: '20px', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.25)', textAlign: 'center', maxWidth: '400px', width: '90%', animation: 'popIn 0.4s cubic-bezier(0.16, 1, 0.3, 1)' }}>
-                        <div style={{ width: '70px', height: '70px', backgroundColor: '#dcfce7', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 1.5rem auto' }}>
-                            <svg width="36" height="36" fill="none" stroke="#10b981" viewBox="0 0 24 24" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M20 6L9 17l-5-5"></path>
-                            </svg>
-                        </div>
-                        <h3 style={{ margin: '0 0 0.5rem 0', color: '#0f172a', fontSize: '1.5rem', fontWeight: 800 }}>Success!</h3>
-                        <p style={{ margin: '0 0 2rem 0', color: '#64748b', fontSize: '1rem', lineHeight: '1.5' }}>
-                            Your profile changes have been saved to the database successfully.
-                        </p>
-                        <button onClick={() => setShowSuccessModal(false)} style={{ padding: '0.85rem 2rem', backgroundColor: '#10b981', color: 'white', border: 'none', borderRadius: '12px', fontWeight: 700, fontSize: '1.05rem', cursor: 'pointer', width: '100%' }}>
-                            Awesome
-                        </button>
+                <div className="modal-overlay">
+                    <div className="modal-content text-center">
+                        <div className="modal-icon-green"><span className="material-symbols-outlined">check_circle</span></div>
+                        <h3 className="modal-title">Success!</h3>
+                        <p className="modal-desc">Your profile changes have been saved to the database successfully.</p>
+                        <button onClick={() => setShowSuccessModal(false)} className="btn-modal-full">Awesome</button>
                     </div>
                 </div>
             )}
 
-            <div style={{ marginBottom: '2.5rem' }}>
-                <h1 className="page-title" style={{ margin: 0, fontSize: '2rem', color: '#0f172a' }}>Settings & Profile</h1>
-                <p style={{ color: '#64748b', fontSize: '1rem', marginTop: '0.5rem' }}>Manage your account credentials and clinic information.</p>
-            </div>
-
-            <form onSubmit={handleSaveRequest}>
-                
-                {/* --- ACCOUNT CREDENTIALS CARD --- */}
-                <div style={cardStyle}>
-                    <div style={leftColStyle}>
-                        <h2 style={{ fontSize: '1.15rem', color: '#0f172a', margin: '0 0 0.5rem 0' }}>Account Credentials</h2>
-                        <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
-                            Update your secure login details. Leave the password fields blank if you do not wish to change your current password.
-                        </p>
-                    </div>
-                    
-                    <div style={{ ...rightColStyle, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                        <div style={{ gridColumn: 'span 2' }}>
-                            <label style={labelStyle}>Username (Login ID)</label>
-                            <input type="text" id="username" value={formData.username} onChange={handleChange} placeholder="Enter your login username" style={inputStyle} />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>New Password</label>
-                            <input type="password" id="password" value={formData.password} onChange={handleChange} placeholder="Enter new password" style={inputStyle} />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Confirm Password</label>
-                            <input type="password" id="confirmPassword" value={formData.confirmPassword} onChange={handleChange} placeholder="Confirm new password" style={inputStyle} />
-                        </div>
-                    </div>
-                </div>
-
-                {/* --- PERSONAL INFORMATION CARD --- */}
-                <div style={cardStyle}>
-                    <div style={leftColStyle}>
-                        <h2 style={{ fontSize: '1.15rem', color: '#0f172a', margin: '0 0 0.5rem 0' }}>Personal Information</h2>
-                        <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
-                            Your name and professional designation as it will appear across the dashboard and on patient prescriptions.
-                        </p>
-                    </div>
-                    
-                    <div style={{ ...rightColStyle, display: 'grid', gridTemplateColumns: '1fr', gap: '1.5rem' }}>
-                        <div>
-                            <label style={labelStyle}>Doctor's Full Name</label>
-                            <input type="text" id="doctorName" value={formData.doctorName} onChange={handleChange} placeholder="e.g., S.S. Gupta" style={inputStyle} required />
-                        </div>
-                        <div>
-                            <label style={labelStyle}>Designation & Qualifications</label>
-                            <input type="text" id="designation" value={formData.designation} onChange={handleChange} placeholder="e.g., M.D. (Homoeo) Psychiatrist" style={inputStyle} />
-                        </div>
-                    </div>
-                </div>
-
-                {/* --- CLINIC DETAILS CARD --- */}
-                <div style={cardStyle}>
-                    <div style={leftColStyle}>
-                        <h2 style={{ fontSize: '1.15rem', color: '#0f172a', margin: '0 0 0.5rem 0' }}>Clinic Details</h2>
-                        <p style={{ color: '#64748b', fontSize: '0.9rem', lineHeight: '1.5', margin: 0 }}>
-                            This information is used to generate official patient visit records, prescriptions, and reports.
-                        </p>
-                    </div>
-                    
-                    <div style={{ ...rightColStyle, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
-                        <div style={{ gridColumn: 'span 2' }}>
-                            <label style={labelStyle}>Clinic Name</label>
-                            <input type="text" id="clinicName" value={formData.clinicName} onChange={handleChange} placeholder="e.g., City Health Clinic" style={inputStyle} />
-                        </div>
-                        <div style={{ gridColumn: 'span 2' }}>
-                            <label style={labelStyle}>Clinic Address</label>
-                            <textarea id="clinicAddress" value={formData.clinicAddress} onChange={handleChange} placeholder="Enter full clinic address" rows="2" style={{ ...inputStyle, resize: 'vertical' }}></textarea>
-                        </div>
-                        <div style={{ gridColumn: 'span 2' }}>
-                            <label style={labelStyle}>Clinic Timings</label>
-                            <input type="text" id="clinicTimings" value={formData.clinicTimings} onChange={handleChange} placeholder="e.g., Mon-Sat: 9 AM - 8 PM" style={inputStyle} />
-                        </div>
-                    </div>
-                </div>
-
-                {/* --- ACTIONS --- */}
-                <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '1rem', marginTop: '1rem', paddingBottom: '2rem' }}>
-                    <button type="button" onClick={() => navigate('/home')} style={{ padding: '0.85rem 1.75rem', borderRadius: '10px', backgroundColor: '#f1f5f9', color: '#475569', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: '0.95rem' }}>
-                        Cancel
-                    </button>
-                    <button type="submit" disabled={loading} style={{ padding: '0.85rem 2rem', borderRadius: '10px', backgroundColor: '#10b981', color: 'white', fontWeight: 600, border: 'none', cursor: 'pointer', fontSize: '0.95rem', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.2)' }}>
-                        Save Profile Changes
-                    </button>
-                </div>
-
-            </form>
         </div>
     );
 };
