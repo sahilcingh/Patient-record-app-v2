@@ -31,11 +31,11 @@ function App() {
         {/* DO NOT wrap these in <Layout> */}
         <Route path="/home" element={<Home />} />
         <Route path="/profile" element={<Profile />} />
+        <Route path="/patients" element={<PatientsList />} />
 
         {/* --- OLD PAGES (Still using the old Layout wrapper for now) --- */}
         <Route path="/new-patient" element={<Layout><NewPatient /></Layout>} />
         <Route path="/old-patient" element={<Layout><OldPatient /></Layout>} />
-        <Route path="/patients" element={<Layout><PatientsList /></Layout>} />
       </Routes>
     </Router>
   );
