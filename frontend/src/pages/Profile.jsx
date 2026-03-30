@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../css/dashboard.css'; // Re-use main layout styles
-import '../css/profile.css';   // New styles specific to profile
+import '../css/dashboard.css'; 
+import '../css/profile.css';   
 
 const Profile = () => {
     const navigate = useNavigate();
@@ -17,18 +17,18 @@ const Profile = () => {
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [showSuccessModal, setShowSuccessModal] = useState(false);
     
-    // Profile State 
+    // STRICTLY DYNAMIC STATE
     const [formData, setFormData] = useState({
         doctorName: '', designation: '', username: '',
         password: '', confirmPassword: '', clinicName: '',
-        clinicAddress: '', clinicTimings: ''
+        clinicAddress: '', clinicTimings: '', 
+        phone: '', email: '' // Added to support the new UI fields
     });
 
-    // UI States for Passwords
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirm, setShowConfirm] = useState(false);
 
-    // --- LOAD DATA ON MOUNT ---
+    // --- FETCH REAL DATA FROM DB ---
     useEffect(() => {
         const fetchProfile = async () => {
             try {
@@ -46,7 +46,9 @@ const Profile = () => {
                         designation: data.profile.DoctorDesi || '',
                         clinicName: data.profile.CompName || '',
                         clinicAddress: data.profile.ClinicAddress || '',
-                        clinicTimings: data.profile.ClinicTimings || ''
+                        clinicTimings: data.profile.ClinicTimings || '',
+                        phone: data.profile.Mobile || '', 
+                        email: data.profile.Email || '' 
                     });
                 }
             } catch (error) {
@@ -72,7 +74,7 @@ const Profile = () => {
         navigate('/');
     };
 
-    // --- SAVE LOGIC ---
+    // --- SAVE TO DB LOGIC ---
     const handleSaveRequest = (e) => {
         e.preventDefault();
         if (formData.password && formData.password !== formData.confirmPassword) {
@@ -133,6 +135,7 @@ const Profile = () => {
     };
     const strength = getPasswordStrength();
 
+    // Dynamically extract initials from DB name
     const getInitials = (name) => {
         if (!name) return "DR";
         const parts = name.replace('Dr. ', '').trim().split(" ");
@@ -143,7 +146,7 @@ const Profile = () => {
     return (
         <div className="dashboard-wrapper" data-theme={isDark ? 'dark' : 'light'}>
             
-            {/* SIDEBAR (Reused from Dashboard) */}
+            {/* SIDEBAR */}
             <aside className={`sidebar ${isSidebarOpen ? 'open' : 'closed'}`}>
                 <div className="sidebar-header">
                     <button className="menu-btn" onClick={() => setIsSidebarOpen(!isSidebarOpen)}>
@@ -163,7 +166,8 @@ const Profile = () => {
                     </div>
                     {isSidebarOpen && (
                         <div className="doctor-info">
-                            <p className="doctor-name">{formData.doctorName || 'Doctor'}</p>
+                            {/* Dynamically display Name from DB */}
+                            <p className="doctor-name">{formData.doctorName || 'Loading...'}</p>
                             <p className="doctor-title">Cardiologist</p>
                         </div>
                     )}
@@ -215,7 +219,7 @@ const Profile = () => {
             <main className="main-content profile-main">
                 <div className="profile-container-inner">
                     
-                    {/* Hero Banner */}
+                    {/* HERO BANNER - 100% Dynamic Data */}
                     <div className="profile-hero">
                         <div className="hero-bg-shapes"></div>
                         <div className="hero-content">
@@ -227,12 +231,12 @@ const Profile = () => {
                             
                             <div className="hero-text">
                                 <div className="badge-tag"><span className="dot"></span> Active Account</div>
-                                <h1>{formData.doctorName || 'Dr. S. S. Gupta'}</h1>
-                                <p>{formData.designation || 'M.D. (Homeo) Psychiatrist'}</p>
+                                <h1>{formData.doctorName || 'Loading Profile...'}</h1>
+                                <p>{formData.designation || 'Designation not set'}</p>
                                 
                                 <div className="hero-meta">
-                                    <span><span className="material-symbols-outlined">location_on</span> {formData.clinicName || 'Clinic'}</span>
-                                    <span><span className="material-symbols-outlined">schedule</span> Tue - Sun</span>
+                                    <span><span className="material-symbols-outlined">location_on</span> {formData.clinicName || 'Clinic not set'}</span>
+                                    <span><span className="material-symbols-outlined">schedule</span> {formData.clinicTimings || 'Timings not set'}</span>
                                     <span><span className="material-symbols-outlined">verified</span> Verified</span>
                                 </div>
                             </div>
@@ -245,7 +249,6 @@ const Profile = () => {
                         </div>
                     </div>
 
-                    {/* Nav Tabs */}
                     <div className="profile-tabs glass-panel">
                         <button className="tab active"><span className="material-symbols-outlined">person</span> Profile</button>
                         <button className="tab"><span className="material-symbols-outlined">security</span> Security</button>
@@ -253,10 +256,9 @@ const Profile = () => {
                         <button className="tab"><span className="material-symbols-outlined">tune</span> Preferences</button>
                     </div>
 
-                    {/* Settings Form */}
+                    {/* DYNAMIC SETTINGS FORM */}
                     <form onSubmit={handleSaveRequest} className="settings-forms">
                         
-                        {/* Account Credentials */}
                         <div className="settings-card glass-panel">
                             <div className="settings-header header-green">
                                 <div className="header-icon"><span className="material-symbols-outlined">lock</span></div>
@@ -278,8 +280,8 @@ const Profile = () => {
                                         </ul>
                                     </div>
                                     <div className="info-box box-yellow mt-4">
-                                        <h4><span className="material-symbols-outlined">info</span> Last Updated</h4>
-                                        <p>Password changed <strong>45 days ago</strong></p>
+                                        <h4><span className="material-symbols-outlined">info</span> Password Reset</h4>
+                                        <p>Leave fields blank if you do not want to change your password.</p>
                                     </div>
                                 </div>
 
@@ -321,7 +323,6 @@ const Profile = () => {
                             </div>
                         </div>
 
-                        {/* Personal Information */}
                         <div className="settings-card glass-panel">
                             <div className="settings-header header-blue">
                                 <div className="header-icon"><span className="material-symbols-outlined">person</span></div>
@@ -337,6 +338,7 @@ const Profile = () => {
                                         <h4><span className="material-symbols-outlined">preview</span> Prescription Preview</h4>
                                         <div className="preview-content">
                                             <div className="preview-avatar">{getInitials(formData.doctorName)}</div>
+                                            {/* DYNAMIC PREVIEW DATA */}
                                             <h3>{formData.doctorName || 'Doctor Name'}</h3>
                                             <p className="preview-des">{formData.designation || 'Designation'}</p>
                                             <div className="preview-meta mt-4">
@@ -350,17 +352,16 @@ const Profile = () => {
                                 <div className="body-right form-fields">
                                     <div className="form-group">
                                         <label><span className="material-symbols-outlined">medical_information</span> Doctor's Full Name</label>
-                                        <input type="text" id="doctorName" value={formData.doctorName} onChange={handleChange} className="form-input" required />
+                                        <input type="text" id="doctorName" value={formData.doctorName} onChange={handleChange} placeholder="e.g., Dr. S.S. Gupta" className="form-input" required />
                                     </div>
                                     <div className="form-group">
                                         <label><span className="material-symbols-outlined">school</span> Designation & Qualifications</label>
-                                        <input type="text" id="designation" value={formData.designation} onChange={handleChange} className="form-input" />
+                                        <input type="text" id="designation" value={formData.designation} onChange={handleChange} placeholder="e.g., M.D. (Homeo) Psychiatrist" className="form-input" />
                                     </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Clinic Details */}
                         <div className="settings-card glass-panel">
                             <div className="settings-header header-purple">
                                 <div className="header-icon"><span className="material-symbols-outlined">local_hospital</span></div>
@@ -373,22 +374,33 @@ const Profile = () => {
                             <div className="settings-body form-fields">
                                 <div className="form-group">
                                     <label><span className="material-symbols-outlined">business</span> Clinic Name</label>
-                                    <input type="text" id="clinicName" value={formData.clinicName} onChange={handleChange} className="form-input" />
+                                    <input type="text" id="clinicName" value={formData.clinicName} onChange={handleChange} placeholder="e.g., City Health Clinic" className="form-input" />
                                 </div>
                                 <div className="form-group">
                                     <label><span className="material-symbols-outlined">location_on</span> Clinic Address</label>
-                                    <textarea id="clinicAddress" rows="2" value={formData.clinicAddress} onChange={handleChange} className="form-input resize-none"></textarea>
+                                    <textarea id="clinicAddress" rows="2" value={formData.clinicAddress} onChange={handleChange} placeholder="Full address" className="form-input resize-none"></textarea>
                                 </div>
                                 <div className="form-group">
                                     <label><span className="material-symbols-outlined">schedule</span> Clinic Timings</label>
-                                    <input type="text" id="clinicTimings" value={formData.clinicTimings} onChange={handleChange} className="form-input" />
+                                    <input type="text" id="clinicTimings" value={formData.clinicTimings} onChange={handleChange} placeholder="e.g., Mon-Sat: 10AM - 6PM" className="form-input" />
+                                </div>
+                                
+                                {/* New Dynamic Phone and Email Fields */}
+                                <div className="form-group" style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
+                                    <div>
+                                        <label><span className="material-symbols-outlined">call</span> Phone</label>
+                                        <input type="text" id="phone" value={formData.phone} onChange={handleChange} placeholder="+91 XXXXX XXXXX" className="form-input" />
+                                    </div>
+                                    <div>
+                                        <label><span className="material-symbols-outlined">mail</span> Email</label>
+                                        <input type="email" id="email" value={formData.email} onChange={handleChange} placeholder="doctor@clinic.com" className="form-input" />
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        {/* Action Buttons */}
                         <div className="form-actions-footer glass-panel">
-                            <div className="last-saved"><span className="material-symbols-outlined">info</span> Last saved: <strong>Today</strong></div>
+                            <div className="last-saved"><span className="material-symbols-outlined">info</span> Data loaded from secure database.</div>
                             <div className="action-btns">
                                 <button type="button" onClick={() => navigate('/home')} className="btn-cancel"><span className="material-symbols-outlined">close</span> Cancel</button>
                                 <button type="submit" disabled={loading} className="btn-save"><span className="material-symbols-outlined">save</span> {loading ? 'Saving...' : 'Save Changes'}</button>
