@@ -83,14 +83,18 @@ body { margin: 0; padding: 0; }
 /* --- RIGHT PANEL --- */
 .login-right {
     flex: 1; /* Takes up the remaining 58% of the card */
-    padding: 2.5rem 3rem 2rem 3rem;
     display: flex;
     flex-direction: column;
+    justify-content: center; /* Perfectly centers the form vertically */
+    position: relative; /* Allows nav and footer to be pinned to edges */
 }
 
+/* PINNED TO TOP RIGHT */
 .top-nav {
+    position: absolute;
+    top: 2rem;
+    right: 3rem;
     display: flex; 
-    justify-content: flex-end; /* Forces items to group on the right */
     align-items: center; 
     gap: 1.5rem;
     font-size: 0.75rem; 
@@ -106,10 +110,11 @@ body { margin: 0; padding: 0; }
 }
 .book-btn:hover { background: #10b981; color: #fff; }
 
+/* PERFECTLY CENTERED FORM */
 .form-container { 
     width: 100%; 
     max-width: 330px; 
-    margin: auto; /* Vertically and horizontally centers the form */
+    margin: 0 auto; /* Centers horizontally */
 }
 
 .form-header { margin-bottom: 1.5rem; }
@@ -187,7 +192,12 @@ body { margin: 0; padding: 0; }
 .support-link span { color: #10b981; font-weight: 600; cursor: pointer; }
 .support-link span:hover { text-decoration: underline; }
 
+/* PINNED TO BOTTOM */
 .bottom-footer {
+    position: absolute;
+    bottom: 2rem;
+    left: 3rem;
+    right: 3rem;
     display: flex; justify-content: space-between; align-items: center;
     font-size: 0.6rem; color: #71717a; text-transform: uppercase;
     border-top: 1px solid #27272a; padding-top: 1rem;
@@ -220,6 +230,6 @@ body { margin: 0; padding: 0; }
 @media (max-width: 850px) {
     .login-card { flex-direction: column; max-width: 450px; height: auto; }
     .login-left { display: none; }
-    .login-right { padding: 2.5rem 2rem; }
+    .login-right { padding: 4rem 2rem 5rem 2rem; } /* Gives padding for absolute items on mobile */
     .top-nav { display: none; }
 }
