@@ -217,7 +217,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import './auth.css'; // Make sure this path matches where you save the CSS file
+import '../css/auth.css'; // Make sure this path matches where you save the CSS file
 
 const Login = () => {
     const [doctorId, setDoctorId] = useState('');
