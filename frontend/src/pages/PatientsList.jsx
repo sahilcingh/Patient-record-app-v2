@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import '../css/dashboard.css';
 import '../css/patients.css'; 
@@ -20,28 +20,31 @@ const PatientsList = () => {
     const [searchTerm, setSearchTerm] = useState('');
     const [activeTab, setActiveTab] = useState('all'); 
     
-    // --- BULLETPROOF PAGINATION ENGINE ---
+    // --- BULLETPROOF DYNAMIC PAGINATION ENGINE ---
     const [currentPage, setCurrentPage] = useState(1);
-    const [itemsPerPage, setItemsPerPage] = useState(8); // Better fallback
+    const [itemsPerPage, setItemsPerPage] = useState(6); 
+    const listBodyRef = useRef(null); 
 
     useEffect(() => {
-        const calculateItemsPerPage = () => {
-            // Total fixed vertical space (headers, toolbars, footer, padding) is ~360px
-            // Each patient row (including the 8px gap) is exactly 86px tall.
-            const availableHeight = window.innerHeight - 360;
-            const rowHeight = 86;
-            const maxRowsThatFit = Math.floor(availableHeight / rowHeight);
-            
-            // Ensure we always show at least 4 rows, even on tiny laptop screens
-            setItemsPerPage(Math.max(4, maxRowsThatFit));
-        };
+        if (!listBodyRef.current) return;
 
-        // Run calculation immediately on load
-        calculateItemsPerPage();
-        
-        // Recalculate flawlessly anytime the user resizes their browser window
-        window.addEventListener('resize', calculateItemsPerPage);
-        return () => window.removeEventListener('resize', calculateItemsPerPage);
+        // ResizeObserver watches the exact pixel height of the table body container
+        const observer = new ResizeObserver((entries) => {
+            for (let entry of entries) {
+                const availableHeight = entry.contentRect.height;
+                
+                // Each row is exactly 76px tall + 8px gap = 84px total space per row.
+                // We divide the total available height by 84 to see exactly how many fit!
+                const maxRowsThatFit = Math.floor(availableHeight / 84);
+                
+                // Set the items per page, ensuring we always show at least 4
+                setItemsPerPage(Math.max(4, maxRowsThatFit));
+            }
+        });
+
+        observer.observe(listBodyRef.current);
+
+        return () => observer.disconnect();
     }, []);
 
     // Modal States
@@ -104,7 +107,6 @@ const PatientsList = () => {
         });
     }, [patients, searchTerm, activeTab]);
 
-    // Reset to page 1 if user changes search or filters
     useEffect(() => {
         setCurrentPage(1);
     }, [searchTerm, activeTab]);
@@ -262,7 +264,6 @@ const PatientsList = () => {
                     <div className="total-badge">Total Unique Patients: <span>{patients.length}</span></div>
                 </header>
 
-                {/* SMART TOOLBAR */}
                 <div className="smart-toolbar glass-panel">
                     <div className="search-bar">
                         <span className="material-symbols-outlined">search</span>
@@ -287,7 +288,7 @@ const PatientsList = () => {
                     </div>
                 </div>
 
-                {/* PATIENTS LIST */}
+                {/* PATIENTS LIST CONTAINER */}
                 <div className="patient-list-container glass-panel">
                     <div className="list-header-row">
                         <div className="col-profile">PATIENT DETAILS</div>
@@ -297,8 +298,8 @@ const PatientsList = () => {
                         <div className="col-action"></div>
                     </div>
 
-                    {/* LIST BODY */}
-                    <div className="list-body custom-scrollbar">
+                    {/* THIS REF MEASURES THE EXACT HEIGHT AVAILABLE */}
+                    <div className="list-body custom-scrollbar" ref={listBodyRef}>
                         {loading ? (
                             <div className="empty-state">Loading directory...</div>
                         ) : paginatedPatients.length > 0 ? (
@@ -329,7 +330,6 @@ const PatientsList = () => {
                         )}
                     </div>
 
-                    {/* PAGINATION FOOTER */}
                     <div className="pagination-footer">
                         <p className="showing-text">
                             Showing <strong>{filteredPatients.length === 0 ? 0 : ((currentPage - 1) * itemsPerPage) + 1}–{Math.min(currentPage * itemsPerPage, filteredPatients.length)}</strong> of <strong>{filteredPatients.length}</strong> patients
