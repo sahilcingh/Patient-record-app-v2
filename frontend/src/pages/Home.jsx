@@ -16,7 +16,7 @@ const Home = () => {
         return savedTheme === 'true'; 
     });
 
-    // Stats state initialized to 0
+    // Stats state
     const [stats, setStats] = useState({
         patientsToday: 0, patientsTrend: 0,
         newRegistrations: 0, registrationsTrend: 0,
@@ -25,6 +25,12 @@ const Home = () => {
     });
     
     const [recentPatients, setRecentPatients] = useState([]);
+
+    // NEW: Dynamic Profile State
+    const [doctorProfile, setDoctorProfile] = useState({
+        name: localStorage.getItem('doctorName') || 'Loading...',
+        designation: 'Loading...'
+    });
     
     // --- HELPER FUNCTIONS ---
     const handleAuthError = (status) => {
@@ -56,6 +62,8 @@ const Home = () => {
 
     const handleLogout = () => {
         localStorage.removeItem('doctorToken');
+        localStorage.removeItem('doctorName');
+        localStorage.removeItem('dbName');
         navigate('/');
     };
 
@@ -78,6 +86,7 @@ const Home = () => {
 
         const fetchDashboardData = async () => {
             try {
+                // 1. Fetch Stats
                 const statsRes = await fetch('https://patient-record-app-drly.onrender.com/api/stats', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
@@ -85,12 +94,32 @@ const Home = () => {
                 const statsData = await statsRes.json();
                 if (statsData.success) setStats(statsData.stats); 
 
+                // 2. Fetch Recent Patients
                 const recentRes = await fetch('https://patient-record-app-drly.onrender.com/api/patients/recent', {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (!recentRes.ok) { handleAuthError(recentRes.status); return; }
                 const recentData = await recentRes.json();
                 if (recentData.success) setRecentPatients(recentData.patients);
+
+                // 3. Fetch Profile (To get dynamic Name and Designation)
+                const profileRes = await fetch('https://patient-record-app-drly.onrender.com/api/profile', {
+                    headers: { 'Authorization': `Bearer ${token}` }
+                });
+                if (profileRes.ok) {
+                    const profileData = await profileRes.json();
+                    if (profileData.success) {
+                        setDoctorProfile({
+                            name: profileData.profile.DoctorName || localStorage.getItem('doctorName') || 'Doctor',
+                            designation: profileData.profile.DoctorDesi || 'Medical Professional'
+                        });
+                        // Update local storage just to be safe
+                        if (profileData.profile.DoctorName) {
+                            localStorage.setItem('doctorName', profileData.profile.DoctorName);
+                        }
+                    }
+                }
+
             } catch (error) { console.error('Error fetching dashboard data:', error); }
         };
 
@@ -140,8 +169,9 @@ const Home = () => {
                     </div>
                     {isSidebarOpen && (
                         <div className="doctor-info">
-                            <p className="doctor-name">Dr. S.S. Gupta</p>
-                            <p className="doctor-title">Cardiologist</p>
+                            {/* DYNAMIC NAME & DESIGNATION */}
+                            <p className="doctor-name">{doctorProfile.name}</p>
+                            <p className="doctor-title">{doctorProfile.designation}</p>
                         </div>
                     )}
                 </div>
@@ -167,7 +197,7 @@ const Home = () => {
                         <span className="material-symbols-outlined">calendar_today</span>
                         {isSidebarOpen && <span>Appointments</span>}
                     </button>
-                    <button className="nav-item">
+                    <button className="nav-item" onClick={() => navigate('/profile')}>
                         <span className="material-symbols-outlined">settings</span>
                         {isSidebarOpen && <span>Settings</span>}
                     </button>
@@ -192,7 +222,8 @@ const Home = () => {
             <main className="main-content">
                 <header className="top-header">
                     <div className="welcome-text">
-                        <h1>Welcome back, Dr. Gupta</h1>
+                        {/* DYNAMIC WELCOME HEADER */}
+                        <h1>Welcome back, {doctorProfile.name}</h1>
                         <p>Manage your practice and patients efficiently.</p>
                     </div>
                     
