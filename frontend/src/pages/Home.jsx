@@ -1,15 +1,22 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../css/dashboard.css';
+import '../css/dashboard.css'; // We will build this CSS file next!
 
 const Home = () => {
     const navigate = useNavigate();
     
+    // --- STATE MANAGEMENT ---
     const [searchQuery, setSearchQuery] = useState('');
     const [showDropdown, setShowDropdown] = useState(false);
     const [searchResults, setSearchResults] = useState([]);
+    const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+    
+    // Initialize Theme State from localStorage
+    const [isDark, setIsDark] = useState(() => {
+        const savedTheme = localStorage.getItem('darkMode');
+        return savedTheme === 'true'; 
+    });
 
-    // --- UPDATED STATS STATE TO HOLD TRENDS ---
     const [stats, setStats] = useState({
         patientsToday: 0, patientsTrend: 0,
         newRegistrations: 0, registrationsTrend: 0,
@@ -18,10 +25,8 @@ const Home = () => {
     });
     
     const [recentPatients, setRecentPatients] = useState([]);
-    const [isModalOpen, setIsModalOpen] = useState(false);
-    const [selectedPatient, setSelectedPatient] = useState(null);
-    const [patientHistory, setPatientHistory] = useState([]);
-
+    
+    // --- HELPER FUNCTIONS ---
     const handleAuthError = (status) => {
         if (status === 401 || status === 403) {
             localStorage.removeItem('doctorToken');
@@ -45,26 +50,31 @@ const Home = () => {
         return name.substring(0, 2).toUpperCase();
     };
 
-    const getAvatarColor = (index) => {
-        const colors = ['#fbbf24', '#10b981', '#64748b', '#f43f5e', '#facc15', '#3b82f6'];
-        return colors[index % colors.length];
+    const getAvatarStyle = (index) => {
+        const styles = [
+            { bg: 'bg-amber-100 dark:bg-amber-900/30', text: 'text-amber-600' },
+            { bg: 'bg-emerald-100 dark:bg-emerald-900/30', text: 'text-emerald-600' },
+            { bg: 'bg-slate-200 dark:bg-slate-700', text: 'text-slate-600 dark:text-slate-300' },
+            { bg: 'bg-rose-100 dark:bg-rose-900/30', text: 'text-rose-600' },
+            { bg: 'bg-blue-100 dark:bg-blue-900/30', text: 'text-blue-600' }
+        ];
+        return styles[index % styles.length];
     };
 
-    // --- NEW: DYNAMIC TREND UI RENDERER ---
-    const renderTrend = (trendValue, text) => {
-        const value = parseFloat(trendValue);
-        const isPositive = value >= 0;
-        const color = isPositive ? '#10b981' : '#ef4444'; // Green for up, Red for down
-        const arrow = isPositive ? '↗' : '↘';
-        const sign = isPositive && value !== 0 ? '+' : '';
-        
-        return (
-            <div style={{ fontSize: '0.85rem', color: color, fontWeight: '600' }}>
-                {arrow} {sign}{value}% {text}
-            </div>
-        );
+    const toggleTheme = () => {
+        const newTheme = !isDark;
+        setIsDark(newTheme);
+        localStorage.setItem('darkMode', newTheme);
     };
 
+    const handleLogout = () => {
+        localStorage.removeItem('doctorToken');
+        localStorage.removeItem('doctorName');
+        localStorage.removeItem('dbName');
+        navigate('/');
+    };
+
+    // --- DATA FETCHING EFFECTS ---
     useEffect(() => {
         const token = localStorage.getItem('doctorToken');
         if (!token) { navigate('/'); return; }
@@ -76,7 +86,7 @@ const Home = () => {
                 });
                 if (!statsRes.ok) { handleAuthError(statsRes.status); return; }
                 const statsData = await statsRes.json();
-                if (statsData.success) setStats(statsData.stats); // Updates values + trends
+                if (statsData.success) setStats(statsData.stats); 
 
                 const recentRes = await fetch('https://patient-record-app-drly.onrender.com/api/patients/recent', {
                     headers: { 'Authorization': `Bearer ${token}` }
@@ -91,6 +101,7 @@ const Home = () => {
         fetchDashboardData();
     }, [navigate]);
 
+    // Search Debounce Effect
     useEffect(() => {
         const token = localStorage.getItem('doctorToken');
         const fetchSearchResults = async () => {
@@ -110,177 +121,276 @@ const Home = () => {
         return () => clearTimeout(delayDebounceFn);
     }, [searchQuery, navigate]);
 
-    const handlePatientClick = async (patient) => {
-        setShowDropdown(false); setSearchQuery('');
-        const token = localStorage.getItem('doctorToken');
-        try {
-            const res = await fetch(`https://patient-record-app-drly.onrender.com/api/patients/history?mobile=${patient.Mobile || ''}&name=${encodeURIComponent(patient.PatientName)}`, { headers: { 'Authorization': `Bearer ${token}` } });
-            if (!res.ok) { handleAuthError(res.status); return; }
-            const data = await res.json();
-            if (data.success && data.history && data.history.length > 1) {
-                setSelectedPatient(patient); setPatientHistory(data.history); setIsModalOpen(true);
-            } else {
-                const targetVisitId = (data.history && data.history.length === 1) ? data.history[0].VisitID : patient.VisitID; 
-                navigate(`/old-patient?id=${targetVisitId}`);
-            }
-        } catch (e) { navigate(`/old-patient?id=${patient.VisitID}`); }
-    };
-
     return (
-        <>
-            <div className="search-row" style={{ marginBottom: '2rem' }}>
-                <div className="search-container" style={{ flex: 1, position: 'relative' }}>
-                    <div style={{ display: 'flex', alignItems: 'center', backgroundColor: '#ffffff', borderRadius: '12px', padding: '0.8rem 1.2rem', border: '1px solid #e2e8f0', boxShadow: '0 2px 4px rgba(0,0,0,0.02)' }}>
-                        <svg width="20" height="20" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-                        <input type="text" placeholder="Search Patients by Name or Mobile Number..." value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} style={{ border: 'none', backgroundColor: 'transparent', outline: 'none', marginLeft: '12px', width: '100%', color: '#0f172a', fontSize: '1rem' }} />
-                    </div>
-                    {showDropdown && searchResults.length > 0 && (
-                        <div className="search-dropdown" style={{ position: 'absolute', top: '110%', left: 0, right: 0, backgroundColor: 'white', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', border: '1px solid #e2e8f0', zIndex: 50, overflow: 'hidden' }}>
-                            {searchResults.map((patient, index) => (
-                                <div key={index} className="search-result-item" onClick={() => handlePatientClick(patient)} style={{ display: 'flex', justifyContent: 'space-between', padding: '1rem 1.5rem', cursor: 'pointer', borderBottom: '1px solid #f1f5f9' }}>
-                                    <div>
-                                        <div style={{ fontWeight: 600, color: '#0f172a' }}>{formatName(patient.PatientName)}</div>
-                                        <div style={{ fontSize: '0.85rem', color: '#64748b' }}>{patient.Mobile || 'No Mobile'} • {formatName(patient.FatherName) || 'No Father Name'}</div>
-                                    </div>
-                                    <div style={{ color: '#10b981', fontWeight: '600', fontSize: '0.9rem', display: 'flex', alignItems: 'center' }}>View Record →</div>
-                                </div>
-                            ))}
-                        </div>
-                    )}
-                </div>
-                <button onClick={() => navigate('/new-patient')} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', backgroundColor: '#10b981', color: 'white', border: 'none', padding: '0.8rem 1.5rem', borderRadius: '12px', fontWeight: '600', cursor: 'pointer', fontSize: '1rem', marginLeft: '1rem', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.2)' }}>
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-                    New patient
-                </button>
-            </div>
-
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '2rem', alignItems: 'start' }}>
-                {/* --- RECENT PATIENTS LIST --- */}
-                <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05)', border: '1px solid #e2e8f0', overflow: 'hidden', display: 'flex', flexDirection: 'column' }}>
-                    <div style={{ padding: '1.5rem 1.5rem 0.5rem 1.5rem' }}>
-                        <h2 style={{ fontSize: '1.25rem', color: '#0f172a', margin: 0, marginBottom: '1.5rem' }}>Recent Patients</h2>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid #e2e8f0', paddingBottom: '0.75rem', marginBottom: '0.5rem' }}>
-                            <span style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: '600' }}>Profile</span>
-                            <span style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: '600' }}>Last visit</span>
-                        </div>
-                    </div>
-
-                    <div style={{ padding: '0 1.5rem' }}>
-                        {recentPatients.length === 0 ? (
-                            <div style={{ padding: '2rem', textAlign: 'center', color: '#64748b' }}>No recent patients found.</div>
-                        ) : (
-                            recentPatients.map((patient, index) => {
-                                const dateObj = new Date(patient.VisitDate);
-                                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                                const formattedDate = `${dateObj.getDate()} ${monthNames[dateObj.getMonth()]}, ${dateObj.getFullYear()}`;
-                                const cleanName = formatName(patient.PatientName);
-                                const initials = getInitials(cleanName);
-
-                                return (
-                                    <div key={index} onClick={() => handlePatientClick(patient)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1rem', margin: '0.25rem -1rem', borderRadius: '12px', borderBottom: index !== recentPatients.length - 1 ? '1px solid #f1f5f9' : 'none', cursor: 'pointer', transition: 'all 0.2s ease' }} onMouseEnter={(e) => { e.currentTarget.style.backgroundColor = '#f3e8ff'; e.currentTarget.style.boxShadow = 'inset 0 0 0 1px #d8b4fe'; }} onMouseLeave={(e) => { e.currentTarget.style.backgroundColor = 'transparent'; e.currentTarget.style.boxShadow = 'none'; }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '1rem' }}>
-                                            <div style={{ backgroundColor: getAvatarColor(index), color: 'white', fontWeight: 'bold', width: '42px', height: '42px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', flexShrink: 0 }}>{initials}</div>
-                                            <div>
-                                                <div style={{ fontWeight: '700', color: '#0f172a', fontSize: '1.05rem', marginBottom: '0.15rem' }}>{cleanName}</div>
-                                                <div style={{ fontSize: '0.85rem', color: '#64748b' }}>S.No: {patient.VisitID}</div>
-                                            </div>
-                                        </div>
-                                        <div style={{ textAlign: 'right' }}>
-                                            <div style={{ fontSize: '0.85rem', color: '#64748b', marginBottom: '0.15rem' }}>Last visit</div>
-                                            <div style={{ fontWeight: '500', color: '#0f172a', fontSize: '0.95rem' }}>{formattedDate}</div>
-                                        </div>
-                                    </div>
-                                )
-                            })
+        <div className={`app-container ${isDark ? 'dark' : ''}`}>
+            <div className="flex h-screen w-full bg-slate-50 dark:bg-slate-900 text-slate-800 dark:text-slate-200 overflow-hidden font-['Inter']">
+                
+                {/* --- SIDEBAR --- */}
+                <aside className={`flex flex-col py-6 border-r border-emerald-50 dark:border-emerald-900/20 sidebar-gradient z-20 shrink-0 transition-all duration-300 ${isSidebarOpen ? 'w-[280px]' : 'w-[80px]'}`}>
+                    
+                    {/* Logo Section */}
+                    <div className="mb-8 px-6 flex items-center gap-3 text-emerald-500 overflow-hidden">
+                        <button onClick={() => setIsSidebarOpen(!isSidebarOpen)} className="cursor-pointer hover:bg-emerald-100 dark:hover:bg-emerald-900/40 p-1.5 rounded-lg transition-colors shrink-0 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-2xl">menu</span>
+                        </button>
+                        {isSidebarOpen && (
+                            <div className="flex items-center gap-3 overflow-hidden">
+                                <span className="material-symbols-outlined text-3xl shrink-0">medical_services</span>
+                                <span className="font-bold text-xl tracking-tight">MediFlow</span>
+                            </div>
                         )}
                     </div>
-                    <div style={{ marginTop: 'auto', borderTop: '1px solid #e2e8f0', padding: '1rem', textAlign: 'center', backgroundColor: '#f8fafc' }}>
-                        <button onClick={() => navigate('/patients')} style={{ background: 'none', border: 'none', color: '#10b981', fontWeight: '700', fontSize: '0.95rem', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.target.style.color = '#059669'} onMouseLeave={e => e.target.style.color = '#10b981'}>View All Patients</button>
-                    </div>
-                </div>
 
-                {/* --- TODAY'S OVERVIEW STATS (Now with Dynamic Trends!) --- */}
-                <div>
-                    <h2 style={{ fontSize: '1.25rem', color: '#0f172a', margin: 0, marginBottom: '1.5rem' }}>Today's Overview</h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.5rem' }}>
+                    {/* Doctor Profile */}
+                    <div className={`px-4 mb-8 flex flex-col transition-all ${isSidebarOpen ? 'items-start' : 'items-center'}`}>
+                        <div className={`flex items-center gap-3 py-4 w-full border-b border-emerald-100/50 dark:border-emerald-800/30 px-2 transition-all ${!isSidebarOpen && 'justify-center'}`}>
+                            <div className={`rounded-2xl bg-white dark:bg-slate-700 overflow-hidden border-2 border-emerald-500/20 premium-shadow shrink-0 transition-all duration-300 ${isSidebarOpen ? 'w-12 h-12' : 'w-10 h-10 rounded-full'}`}>
+                                <img alt="Doctor profile" className="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAA5LdANAUa2KwGpdHFThaxvz60QKnY86uujQYa7kzWemiV_fYEzTS1PoWpGtqeox60pgP_fkrcvuXwaifghpeWF1KDw9U3J7BjuhgrSl8gS639_AGaBFa2OOogt-nEZXMeVPG6P8fHux0KNrfQYe44O8ZUsEzh3iq6zsTBVBytXS6vQ-M4d1GWNuUn5wGyvO7nhHKKOMIUTEix065iYxbzJHC94q2oQMKFeok6YMNnhOQxZzwkUwEpNQUmpFjnEUvlCH2crqTLBQ" />
+                            </div>
+                            {isSidebarOpen && (
+                                <div className="flex-1 min-w-0 transition-all">
+                                    <p className="text-sm font-bold truncate text-slate-900 dark:text-white">Dr. S.S. Gupta</p>
+                                    <p className="text-[11px] text-slate-500 dark:text-emerald-400/80 font-medium truncate">Cardiologist</p>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+
+                    {/* Navigation Links */}
+                    <nav className="flex flex-col gap-1.5 flex-1 px-4 overflow-y-auto custom-scrollbar">
+                        <button className={`group flex items-center w-full h-11 rounded-xl bg-emerald-500 text-white premium-shadow transition-all ${isSidebarOpen ? 'px-4' : 'justify-center'}`}>
+                            <span className="material-symbols-outlined text-xl shrink-0">dashboard</span>
+                            {isSidebarOpen && <span className="ml-3 font-medium text-sm">Dashboard</span>}
+                        </button>
                         
-                        {/* Patients Today */}
-                        <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '1.5rem', border: '1px solid #e0f2fe', boxShadow: '0 4px 6px -1px rgba(14, 165, 233, 0.1)', position: 'relative', overflow: 'hidden' }}>
-                            <svg style={{ position: 'absolute', right: '-15px', bottom: '10px', opacity: 0.05, width: '100px', height: '100px', color: '#0ea5e9' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"></path></svg>
-                            <div style={{ backgroundColor: '#e0f2fe', color: '#0ea5e9', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"></path></svg></div>
-                            <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Patients Today</div>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
-                                <div style={{ fontSize: '2.5rem', fontWeight: '800', color: '#0f172a' }}>{stats.patientsToday}</div>
-                                {/* Dynamic Render Here */}
-                                {renderTrend(stats.patientsTrend, 'from yesterday')}
-                            </div>
-                        </div>
+                        <button onClick={() => navigate('/patients')} className={`group flex items-center w-full h-11 rounded-xl text-emerald-800 dark:text-emerald-300 hover:text-emerald-500 hover:bg-white/80 dark:hover:bg-emerald-900/40 transition-all ${isSidebarOpen ? 'px-4' : 'justify-center'}`}>
+                            <span className="material-symbols-outlined text-xl shrink-0">group</span>
+                            {isSidebarOpen && <span className="ml-3 font-medium text-sm">Patients</span>}
+                        </button>
 
-                        {/* New Registrations */}
-                        <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '1.5rem', border: '1px solid #d1fae5', boxShadow: '0 4px 6px -1px rgba(16, 185, 129, 0.1)', position: 'relative', overflow: 'hidden' }}>
-                            <svg style={{ position: 'absolute', right: '-10px', bottom: '10px', opacity: 0.05, width: '90px', height: '90px', color: '#10b981' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path></svg>
-                            <div style={{ backgroundColor: '#d1fae5', color: '#10b981', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M18 9v3m0 0v3m0-3h3m-3 0h-3m-2-5a4 4 0 11-8 0 4 4 0 018 0zM3 20a6 6 0 0112 0v1H3v-1z"></path></svg></div>
-                            <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Visits This Week</div>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
-                                <div style={{ fontSize: '2.5rem', fontWeight: '800', color: '#0f172a' }}>{stats.newRegistrations}</div>
-                                {renderTrend(stats.registrationsTrend, 'from last wk')}
-                            </div>
-                        </div>
+                        <button onClick={() => navigate('/new-patient')} className={`group flex items-center w-full h-11 rounded-xl text-emerald-800 dark:text-emerald-300 hover:text-emerald-500 hover:bg-white/80 dark:hover:bg-emerald-900/40 transition-all ${isSidebarOpen ? 'px-4' : 'justify-center'}`}>
+                            <span className="material-symbols-outlined text-xl shrink-0">add_circle</span>
+                            {isSidebarOpen && <span className="ml-3 font-medium text-sm">New Patient</span>}
+                        </button>
+                        
+                        {/* Placeholder Links for mockup accuracy */}
+                        <button className={`group flex items-center w-full h-11 rounded-xl text-emerald-800 dark:text-emerald-300 hover:text-emerald-500 hover:bg-white/80 dark:hover:bg-emerald-900/40 transition-all ${isSidebarOpen ? 'px-4' : 'justify-center'}`}>
+                            <span className="material-symbols-outlined text-xl shrink-0">assessment</span>
+                            {isSidebarOpen && <span className="ml-3 font-medium text-sm">Reports</span>}
+                        </button>
+                        
+                        <button className={`group flex items-center w-full h-11 rounded-xl text-emerald-800 dark:text-emerald-300 hover:text-emerald-500 hover:bg-white/80 dark:hover:bg-emerald-900/40 transition-all ${isSidebarOpen ? 'px-4' : 'justify-center'}`}>
+                            <span className="material-symbols-outlined text-xl shrink-0">calendar_today</span>
+                            {isSidebarOpen && <span className="ml-3 font-medium text-sm">Appointments</span>}
+                        </button>
 
-                        {/* Tests Prescribed */}
-                        <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '1.5rem', border: '1px solid #ffedd5', boxShadow: '0 4px 6px -1px rgba(249, 115, 22, 0.1)', position: 'relative', overflow: 'hidden' }}>
-                            <svg style={{ position: 'absolute', right: '0px', bottom: '0px', opacity: 0.05, width: '100px', height: '100px', color: '#f97316', transform: 'rotate(-15deg)' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg>
-                            <div style={{ backgroundColor: '#ffedd5', color: '#f97316', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M19.428 15.428a2 2 0 00-1.022-.547l-2.387-.477a6 6 0 00-3.86.517l-.318.158a6 6 0 01-3.86.517L6.05 15.21a2 2 0 00-1.806.547M8 4h8l-1 1v5.172a2 2 0 00.586 1.414l5 5c1.26 1.26.367 3.414-1.415 3.414H4.828c-1.782 0-2.674-2.154-1.414-3.414l5-5A2 2 0 009 10.172V5L8 4z"></path></svg></div>
-                            <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Tests This Week</div>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
-                                <div style={{ fontSize: '2.5rem', fontWeight: '800', color: '#0f172a' }}>{stats.testsPrescribed}</div>
-                                {renderTrend(stats.testsTrend, 'from last wk')}
-                            </div>
-                        </div>
+                        <button className={`group flex items-center w-full h-11 rounded-xl text-emerald-800 dark:text-emerald-300 hover:text-emerald-500 hover:bg-white/80 dark:hover:bg-emerald-900/40 transition-all ${isSidebarOpen ? 'px-4' : 'justify-center'}`}>
+                            <span className="material-symbols-outlined text-xl shrink-0">settings</span>
+                            {isSidebarOpen && <span className="ml-3 font-medium text-sm">Settings</span>}
+                        </button>
+                    </nav>
 
-                        {/* Daily Revenue */}
-                        <div style={{ backgroundColor: '#ffffff', borderRadius: '16px', padding: '1.5rem', border: '1px solid #f3e8ff', boxShadow: '0 4px 6px -1px rgba(168, 85, 247, 0.1)', position: 'relative', overflow: 'hidden' }}>
-                            <svg style={{ position: 'absolute', right: '-5px', bottom: '0px', opacity: 0.05, width: '90px', height: '90px', color: '#a855f7' }} fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth="1" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-                            <div style={{ backgroundColor: '#f3e8ff', color: '#a855f7', width: '40px', height: '40px', borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '1rem' }}><svg width="20" height="20" fill="none" stroke="currentColor" viewBox="0 0 24 24" strokeWidth="2"><path strokeLinecap="round" strokeLinejoin="round" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg></div>
-                            <div style={{ fontSize: '0.8rem', fontWeight: '700', color: '#64748b', textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: '0.5rem' }}>Daily Revenue</div>
-                            <div style={{ display: 'flex', alignItems: 'baseline', gap: '0.75rem' }}>
-                                <div style={{ fontSize: '2.5rem', fontWeight: '800', color: '#0f172a' }}>₹{stats.dailyRevenue}</div>
-                                {renderTrend(stats.revenueTrend, 'monthly trend')}
+                    {/* Bottom Actions (Theme & Logout) */}
+                    <div className="mt-auto px-4 flex flex-col gap-2">
+                        <div className={`flex items-center py-3 ${isSidebarOpen ? 'gap-3 px-4' : 'justify-center'}`}>
+                            <div className="relative inline-block w-8 h-4 align-middle select-none transition duration-200 ease-in shrink-0" onClick={toggleTheme}>
+                                <input type="checkbox" checked={isDark} readOnly className="toggle-checkbox absolute block w-4 h-4 rounded-full bg-white border-2 border-emerald-200 appearance-none cursor-pointer outline-none transition-all duration-300 z-10 checked:right-0 checked:border-emerald-500" />
+                                <label className="block overflow-hidden h-4 rounded-full bg-emerald-100 dark:bg-emerald-900/50 cursor-pointer transition-all duration-300"></label>
                             </div>
+                            {isSidebarOpen && <span className="text-xs font-semibold text-slate-500 truncate">Dark Mode</span>}
                         </div>
-
+                        
+                        <button onClick={handleLogout} className={`w-full h-11 flex items-center rounded-xl text-slate-500 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/10 transition-all ${isSidebarOpen ? 'px-4' : 'justify-center'}`}>
+                            <span className="material-symbols-outlined text-xl shrink-0">logout</span>
+                            {isSidebarOpen && <span className="ml-3 font-medium text-sm">Logout</span>}
+                        </button>
                     </div>
-                </div>
-            </div>
+                </aside>
 
-            {/* --- HISTORY MODAL --- */}
-            {isModalOpen && (
-                <div className="modal-overlay" onClick={() => setIsModalOpen(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header">
-                            <h2>{formatName(selectedPatient?.PatientName)}'s Visit History</h2>
-                            <button className="close-btn" onClick={() => setIsModalOpen(false)}>×</button>
+                {/* --- MAIN DASHBOARD CONTENT --- */}
+                <main className="flex-1 flex flex-col overflow-hidden bg-gradient-to-br from-slate-50 to-white dark:from-slate-900 dark:to-slate-800 p-6 lg:p-8 transition-all duration-300 relative">
+                    
+                    {/* Header Row */}
+                    <header className="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6 shrink-0 relative z-30">
+                        <div>
+                            <h1 className="text-2xl font-bold text-slate-900 dark:text-white leading-tight">Welcome back, Dr. Gupta</h1>
+                            <p className="text-sm text-slate-500 dark:text-slate-400">Manage your practice and patients efficiently.</p>
                         </div>
-                        <div className="history-list">
-                            {patientHistory.map((visit, index) => {
-                                const vDate = new Date(visit.VisitDate);
-                                const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                                const formattedVDate = `${vDate.getDate()} ${monthNames[vDate.getMonth()]}, ${vDate.getFullYear()}`;
-                                return (
-                                    <div key={index} className="history-item" onClick={() => navigate(`/old-patient?id=${visit.VisitID}`)} style={{ padding: '1rem', border: '1px solid #e2e8f0', borderRadius: '12px', marginBottom: '0.75rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center', cursor: 'pointer', transition: 'all 0.2s' }} onMouseEnter={(e) => { e.currentTarget.style.borderColor = '#3b82f6'; e.currentTarget.style.backgroundColor = '#eff6ff'; }} onMouseLeave={(e) => { e.currentTarget.style.borderColor = '#e2e8f0'; e.currentTarget.style.backgroundColor = 'transparent'; }}>
-                                        <div>
-                                            <div style={{ fontWeight: 700, fontSize: '1.1rem', color: '#0f172a', marginBottom: '0.25rem' }}>{formattedVDate}</div>
-                                            <div style={{ color: '#64748b', fontSize: '0.9rem', fontWeight: 500 }}>Visit #{visit.VisitID}</div>
+                        
+                        {/* Search Bar */}
+                        <div className="relative max-w-md w-full">
+                            <div className="flex items-center gap-3 bg-white/80 dark:bg-slate-800/80 glass-card px-4 py-2 rounded-2xl premium-shadow w-full">
+                                <span className="material-symbols-outlined text-slate-400 text-lg">search</span>
+                                <input 
+                                    type="text" 
+                                    placeholder="Search patients or records..." 
+                                    className="border-none focus:ring-0 bg-transparent w-full text-sm py-1 placeholder-slate-400 text-slate-800 dark:text-slate-200 outline-none"
+                                    value={searchQuery}
+                                    onChange={(e) => setSearchQuery(e.target.value)}
+                                />
+                                <kbd className="hidden md:inline-flex items-center gap-1 px-2 py-0.5 text-[10px] font-bold text-slate-400 bg-slate-50 dark:bg-slate-700 rounded-lg">
+                                    <span>⌘</span>K
+                                </kbd>
+                            </div>
+
+                            {/* Search Dropdown */}
+                            {showDropdown && searchResults.length > 0 && (
+                                <div className="absolute top-[110%] left-0 right-0 bg-white dark:bg-slate-800 rounded-xl premium-shadow border border-slate-200 dark:border-slate-700 overflow-hidden z-50">
+                                    {searchResults.map((patient, index) => (
+                                        <div key={index} onClick={() => navigate(`/old-patient?id=${patient.VisitID}`)} className="flex justify-between p-3 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-700 border-b border-slate-100 dark:border-slate-700 last:border-0 transition-colors">
+                                            <div>
+                                                <div className="font-semibold text-sm text-slate-800 dark:text-slate-200">{formatName(patient.PatientName)}</div>
+                                                <div className="text-xs text-slate-500">{patient.Mobile || 'No Mobile'}</div>
+                                            </div>
+                                            <div className="text-emerald-500 text-sm font-semibold flex items-center">View →</div>
                                         </div>
-                                        <div style={{ color: '#3b82f6', fontWeight: 600 }}>View Report →</div>
-                                    </div>
-                                );
-                            })}
+                                    ))}
+                                </div>
+                            )}
                         </div>
-                    </div>
-                </div>
-            )}
-        </>
+                    </header>
+
+                    {/* Stats Row */}
+                    <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6 shrink-0">
+                        
+                        <div className="gradient-blue glass-card p-4 rounded-2xl premium-shadow transition-all card-hover flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-2xl">person</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-center mb-0.5">
+                                    <h3 className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest truncate">Patients Today</h3>
+                                    <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-full ml-1 shrink-0">+12%</span>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-2xl font-extrabold text-slate-900 dark:text-white">{stats.patientsToday || 42}</span>
+                                    <span className="text-[10px] text-slate-400">vs 34</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="gradient-purple glass-card p-4 rounded-2xl premium-shadow transition-all card-hover flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-purple-500/10 text-purple-600 dark:text-purple-400 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-2xl">event_available</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-center mb-0.5">
+                                    <h3 className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest truncate">Weekly Visits</h3>
+                                    <span className="text-[9px] font-bold text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded-full ml-1 shrink-0">-4%</span>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-2xl font-extrabold text-slate-900 dark:text-white">{stats.newRegistrations || 186}</span>
+                                    <span className="text-[10px] text-slate-400">vs 194</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="gradient-orange glass-card p-4 rounded-2xl premium-shadow transition-all card-hover flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-2xl">science</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-center mb-0.5">
+                                    <h3 className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest truncate">Tests Pending</h3>
+                                    <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-full ml-1 shrink-0">+8%</span>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-2xl font-extrabold text-slate-900 dark:text-white">{stats.testsPrescribed || 12}</span>
+                                    <span className="text-[10px] text-slate-400">4 urgent</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div className="gradient-mint glass-card p-4 rounded-2xl premium-shadow transition-all card-hover flex items-center gap-4">
+                            <div className="w-12 h-12 rounded-2xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center shrink-0">
+                                <span className="material-symbols-outlined text-2xl">payments</span>
+                            </div>
+                            <div className="flex-1 min-w-0">
+                                <div className="flex justify-between items-center mb-0.5">
+                                    <h3 className="text-slate-500 dark:text-slate-400 text-[10px] font-bold uppercase tracking-widest truncate">Daily Revenue</h3>
+                                    <span className="text-[9px] font-bold text-emerald-500 bg-emerald-500/10 px-1.5 py-0.5 rounded-full ml-1 shrink-0">+18%</span>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                    <span className="text-2xl font-extrabold text-slate-900 dark:text-white">${stats.dailyRevenue || '2,840'}</span>
+                                    <span className="text-[10px] text-slate-400">from 24</span>
+                                </div>
+                            </div>
+                        </div>
+
+                    </section>
+
+                    {/* Recent Patients Table */}
+                    <section className="bg-white/70 dark:bg-slate-800/50 glass-card rounded-[28px] premium-shadow overflow-hidden flex flex-col flex-1 min-h-0">
+                        <div className="p-6 border-b border-slate-100 dark:border-slate-700/50 flex items-center justify-between shrink-0 bg-white/40 dark:bg-slate-800/40 sticky top-0 z-20 backdrop-blur-md">
+                            <h2 className="text-xl font-bold text-slate-900 dark:text-white">Recent Patients</h2>
+                            <button onClick={() => navigate('/patients')} className="px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 text-sm font-bold rounded-xl hover:bg-emerald-500 hover:text-white transition-all flex items-center gap-2">
+                                View All <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                            </button>
+                        </div>
+                        
+                        <div className="flex-1 overflow-y-auto custom-scrollbar px-6 pb-6">
+                            <table className="w-full text-left border-separate border-spacing-y-2 min-w-[800px]">
+                                <thead className="sticky top-0 bg-white/95 dark:bg-[#1E293B]/95 backdrop-blur-md z-10 shadow-sm sidebar-gradient border-b border-slate-200 dark:border-slate-700">
+                                    <tr className="text-sm font-semibold text-slate-700 dark:text-slate-300">
+                                        <th className="px-6 py-4 font-bold">Patient Profile</th>
+                                        <th className="px-6 py-4 font-bold text-center">Status</th>
+                                        <th className="px-6 py-4 font-bold">Appointment</th>
+                                        <th className="px-6 py-4 font-bold">Last Visit</th>
+                                        <th className="px-6 py-4 font-bold text-right">Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {recentPatients.length > 0 ? recentPatients.map((patient, index) => {
+                                        const dateObj = new Date(patient.VisitDate);
+                                        const formattedDate = `${dateObj.getDate()} ${["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"][dateObj.getMonth()]}, ${dateObj.getFullYear()}`;
+                                        const cleanName = formatName(patient.PatientName);
+                                        const initials = getInitials(cleanName);
+                                        const avatarStyle = getAvatarStyle(index);
+
+                                        return (
+                                            <tr key={index} onClick={() => navigate(`/old-patient?id=${patient.VisitID}`)} className="table-row-hover bg-white/50 dark:bg-slate-800/30 transition-all group cursor-pointer">
+                                                <td className="px-6 py-3 rounded-l-2xl">
+                                                    <div className="flex items-center gap-4">
+                                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold shrink-0 premium-shadow ${avatarStyle.bg} ${avatarStyle.text}`}>
+                                                            {initials}
+                                                        </div>
+                                                        <div>
+                                                            <p className="font-bold text-sm text-slate-900 dark:text-white">{cleanName}</p>
+                                                            <p className="text-[10px] text-slate-500">S.No: {patient.VisitID} • {patient.Sex || 'Unknown'}, {patient.Age || '?'}y</p>
+                                                        </div>
+                                                    </div>
+                                                </td>
+                                                <td className="px-6 py-3 text-center">
+                                                    <span className="px-4 py-1 rounded-full text-[10px] font-bold bg-emerald-500/10 text-emerald-600 dark:text-emerald-400">Completed</span>
+                                                </td>
+                                                <td className="px-6 py-3 text-xs font-semibold text-slate-600 dark:text-slate-400">General Checkup</td>
+                                                <td className="px-6 py-3 text-xs text-slate-500">{formattedDate}</td>
+                                                <td className="px-6 py-3 text-right rounded-r-2xl">
+                                                    <button className="p-2 rounded-xl bg-slate-50 dark:bg-slate-700/50 text-slate-400 hover:text-emerald-500 transition-all">
+                                                        <span className="material-symbols-outlined text-lg">more_horiz</span>
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        );
+                                    }) : (
+                                        <tr>
+                                            <td colSpan="5" className="text-center py-8 text-slate-500">No recent patients found.</td>
+                                        </tr>
+                                    )}
+                                </tbody>
+                            </table>
+                        </div>
+                    </section>
+                </main>
+
+                {/* Floating Action Button */}
+                <button onClick={() => navigate('/new-patient')} className="fixed bottom-8 right-8 w-14 h-14 bg-emerald-500 text-white rounded-full shadow-2xl shadow-emerald-500/40 flex items-center justify-center hover:scale-110 active:scale-95 transition-all group z-30">
+                    <span className="material-symbols-outlined text-2xl">add</span>
+                    <span className="absolute right-16 px-4 py-2 bg-slate-900 text-white text-xs font-bold rounded-xl opacity-0 invisible group-hover:opacity-100 group-hover:visible transition-all whitespace-nowrap shadow-xl">New Patient</span>
+                </button>
+
+            </div>
+        </div>
     );
 };
 
