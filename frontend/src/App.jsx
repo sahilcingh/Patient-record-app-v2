@@ -36,7 +36,7 @@ function App() {
 
         {/* --- OLD PAGES --- */}
         {/* Still using the old Layout wrapper until we upgrade it */}
-        <Route path="/old-patient" element={<Layout><OldPatient /></Layout>} />
+        <Route path="/old-patient" element={<OldPatient />} />
       </Routes>
     </Router>
   );
