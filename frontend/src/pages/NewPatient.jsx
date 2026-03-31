@@ -409,31 +409,17 @@ const NewPatient = () => {
                         </div>
                         
                         <div className="modal-body space-y">
-                            <div className="grid-2 gap-4">
-                                <div className="form-group">
-                                    <label>Investigation Type *</label>
-                                    <div className="select-wrapper">
-                                        <select className="form-input appearance-none">
-                                            <option value="">Select type</option>
-                                            <option>Blood Test</option>
-                                            <option>Urine Test</option>
-                                            <option>X-Ray</option>
-                                            <option>ECG</option>
-                                        </select>
-                                    </div>
-                                </div>
-                                <div className="form-group">
-                                    <label>Test Name / Description *</label>
-                                    <input type="text" placeholder="e.g. Complete Blood Count (CBC)" className="form-input" />
-                                </div>
-                                <div className="form-group full-width">
-                                    <label>Notes / Instructions</label>
-                                    <textarea placeholder="Any special instructions for the patient or lab..." rows="4" 
-                                              value={investigationText}
-                                              onChange={(e) => setInvestigationText(e.target.value)}
-                                              className="form-input resize-y"></textarea>
-                                </div>
-                            </div>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1rem 0' }}>
+                                Enter the details of any tests or investigations prescribed for this patient.
+                            </p>
+                            <textarea 
+                                className="form-input resize-y" 
+                                rows="6" 
+                                placeholder="E.g., Complete Blood Count (CBC), X-Ray Chest..."
+                                value={investigationText}
+                                onChange={(e) => setInvestigationText(e.target.value)}
+                                autoFocus
+                            ></textarea>
                         </div>
 
                         <div className="modal-footer border-t">
