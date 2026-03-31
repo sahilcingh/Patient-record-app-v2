@@ -491,33 +491,48 @@ const OldPatient = () => {
                 </section>
             </main>
 
-            {/* --- INVESTIGATION MODAL --- */}
+            {/* --- BULLETPROOF INVESTIGATION MODAL --- */}
             {isInvModalOpen && (
                 <div className="modal-overlay" onClick={() => setIsInvModalOpen(false)}>
-                    <div className="modal-content large" onClick={e => e.stopPropagation()}>
-                        <div className="modal-header border-b">
-                            <h2>Investigations / Tests</h2>
-                            <button className="close-btn" onClick={() => setIsInvModalOpen(false)}><span className="material-symbols-outlined">close</span></button>
+                    <div 
+                        className="modal-content" 
+                        onClick={e => e.stopPropagation()} 
+                        style={{ padding: 0, maxWidth: '550px', overflow: 'hidden' }}
+                    >
+                        {/* HEADER: Using a div/span bypasses rogue button CSS bugs */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--surface)' }}>
+                            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>Investigations / Tests</h2>
+                            
+                            {/* The "X" is now a div, so it won't stretch! */}
+                            <div 
+                                onClick={() => setIsInvModalOpen(false)} 
+                                style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', padding: '4px', cursor: 'pointer', borderRadius: '50%' }}
+                            >
+                                <span className="material-symbols-outlined" style={{ fontSize: '1.5rem', color: 'var(--text-muted)' }}>close</span>
+                            </div>
                         </div>
                         
-                        <div className="modal-body space-y">
-                            <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', margin: '0 0 1rem 0' }}>
+                        {/* BODY: Single spacious textarea */}
+                        <div style={{ padding: '1.5rem', backgroundColor: 'var(--surface-solid)' }}>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1rem 0' }}>
                                 Review or edit the test details for this specific visit.
                             </p>
                             <textarea 
-                                className="form-input resize-y" 
-                                rows="6" 
+                                className="form-input custom-scrollbar" 
+                                rows="5" 
                                 placeholder="E.g., Complete Blood Count (CBC), X-Ray Chest..."
                                 value={investigationText}
                                 onChange={(e) => setInvestigationText(e.target.value)}
                                 autoFocus
+                                style={{ resize: 'vertical', width: '100%', minHeight: '120px' }}
                             ></textarea>
                         </div>
 
-                        <div className="modal-footer border-t">
-                            <button type="button" className="btn-cancel" onClick={() => setIsInvModalOpen(false)}>Cancel</button>
-                            <button type="button" className="btn-save shadow-btn" onClick={() => setIsInvModalOpen(false)}>
-                                <span className="material-symbols-outlined">check</span> Confirm Edits
+                        {/* FOOTER */}
+                        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <button type="button" className="btn-cancel" onClick={() => setIsInvModalOpen(false)} style={{ padding: '0.6rem 1.5rem', flex: 'none', width: 'auto' }}>Cancel</button>
+                            <button type="button" className="btn-save shadow-btn" onClick={() => setIsInvModalOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.6rem 1.5rem', flex: 'none', width: 'auto' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>check</span> Confirm Edits
                             </button>
                         </div>
                     </div>
