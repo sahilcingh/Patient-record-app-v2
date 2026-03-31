@@ -399,7 +399,7 @@ const NewPatient = () => {
                 </section>
             </main>
 
-            {/* --- BULLETPROOF INVESTIGATION MODAL --- */}
+           {/* --- BULLETPROOF INVESTIGATION MODAL --- */}
             {isInvModalOpen && (
                 <div className="modal-overlay" onClick={() => setIsInvModalOpen(false)}>
                     <div 
@@ -407,36 +407,39 @@ const NewPatient = () => {
                         onClick={e => e.stopPropagation()} 
                         style={{ padding: 0, maxWidth: '550px', overflow: 'hidden' }}
                     >
-                        {/* Inline Styled Header to bypass CSS bugs */}
+                        {/* HEADER: Using a div/span bypasses rogue button CSS bugs */}
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--surface)' }}>
-                            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>Add New Investigation</h2>
-                            <button 
-                                type="button"
+                            <h2 style={{ margin: 0, fontSize: '1.25rem', fontWeight: 800, color: 'var(--text-main)', whiteSpace: 'nowrap' }}>Add New Investigation</h2>
+                            
+                            {/* The "X" is now a div, so it won't stretch! */}
+                            <div 
                                 onClick={() => setIsInvModalOpen(false)} 
-                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.25rem', borderRadius: '8px' }}
+                                style={{ display: 'flex', alignItems: 'center', justifyItems: 'center', padding: '4px', cursor: 'pointer', borderRadius: '50%' }}
                             >
-                                <span className="material-symbols-outlined" style={{ fontSize: '1.5rem' }}>close</span>
-                            </button>
+                                <span className="material-symbols-outlined" style={{ fontSize: '1.5rem', color: 'var(--text-muted)' }}>close</span>
+                            </div>
                         </div>
                         
+                        {/* BODY: Single spacious textarea */}
                         <div style={{ padding: '1.5rem', backgroundColor: 'var(--surface-solid)' }}>
                             <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1rem 0' }}>
                                 Enter the details of any tests or investigations prescribed for this patient.
                             </p>
                             <textarea 
                                 className="form-input custom-scrollbar" 
-                                rows="6" 
+                                rows="5" 
                                 placeholder="E.g., Complete Blood Count (CBC), X-Ray Chest..."
                                 value={investigationText}
                                 onChange={(e) => setInvestigationText(e.target.value)}
                                 autoFocus
-                                style={{ resize: 'vertical', width: '100%' }}
+                                style={{ resize: 'vertical', width: '100%', minHeight: '120px' }}
                             ></textarea>
                         </div>
 
-                        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--surface)', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
-                            <button type="button" className="btn-cancel" onClick={() => setIsInvModalOpen(false)}>Cancel</button>
-                            <button type="button" className="btn-save shadow-btn" onClick={() => setIsInvModalOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                        {/* FOOTER */}
+                        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--surface)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                            <button type="button" className="btn-cancel" onClick={() => setIsInvModalOpen(false)} style={{ padding: '0.6rem 1.5rem', flex: 'none', width: 'auto' }}>Cancel</button>
+                            <button type="button" className="btn-save shadow-btn" onClick={() => setIsInvModalOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem', padding: '0.6rem 1.5rem', flex: 'none', width: 'auto' }}>
                                 <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>add</span> Add Investigation
                             </button>
                         </div>
