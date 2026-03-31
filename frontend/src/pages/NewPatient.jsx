@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import '../css/dashboard.css'; 
-import '../css/new-patient.css'; 
+import '../css/dashboard.css'; // Re-use main layout styles
+import '../css/new-patient.css'; // New styles specific to the form
 
 const NewPatient = () => {
     const navigate = useNavigate();
@@ -9,15 +9,18 @@ const NewPatient = () => {
     const [loading, setLoading] = useState(false);
     const [isSidebarOpen, setIsSidebarOpen] = useState(true);
     
+    // Theme & Doctor Profile
     const [isDark, setIsDark] = useState(() => localStorage.getItem('darkMode') === 'true');
     const [doctorProfile, setDoctorProfile] = useState({
         name: localStorage.getItem('doctorName') || 'Loading...',
         designation: 'Loading...'
     });
 
+    // Modals State
     const [showConfirmModal, setShowConfirmModal] = useState(false);
     const [isInvModalOpen, setIsInvModalOpen] = useState(false);
 
+    // Form State
     const [formData, setFormData] = useState({
         visitDate: '', patientName: '', age: '', gender: '',
         fatherName: '', mobile: '', email: '', address: '',
@@ -25,8 +28,10 @@ const NewPatient = () => {
         total: '', cartage: '', conveyance: ''
     });
     
+    // Investigation State
     const [investigationText, setInvestigationText] = useState('');
 
+    // --- FETCH DOCTOR PROFILE ---
     useEffect(() => {
         const token = localStorage.getItem('doctorToken');
         if (!token) { navigate('/'); return; }
@@ -50,19 +55,25 @@ const NewPatient = () => {
         fetchProfile();
     }, [navigate]);
 
+    // --- LOGIC: Handle Input Changes with Strict Limits ---
     const handleChange = (e) => {
         const { id, value } = e.target;
+
+        // 1. Mobile Number: Strictly numbers only, max 10 digits
         if (id === 'mobile') {
             const onlyNumbers = value.replace(/\D/g, ''); 
             if (onlyNumbers.length > 10) return; 
             setFormData(prev => ({ ...prev, [id]: onlyNumbers }));
             return;
         }
+
+        // 2. Age Limit: Cannot exceed 105
         if (id === 'age') {
             if (value !== '' && parseInt(value) > 105) return; 
             setFormData(prev => ({ ...prev, [id]: value }));
             return;
         }
+
         setFormData(prev => ({ ...prev, [id]: value }));
     };
 
@@ -72,11 +83,13 @@ const NewPatient = () => {
         (parseFloat(formData.conveyance) || 0)
     ).toString();
 
+    // --- LOGIC: Set Date & Handle 'Enter' Key Navigation ---
     useEffect(() => {
         const today = new Date();
         const day = String(today.getDate()).padStart(2, '0');
         const month = String(today.getMonth() + 1).padStart(2, '0');
         const year = today.getFullYear();
+        // Set default date to today in YYYY-MM-DD format for HTML date inputs
         setFormData(prev => ({ ...prev, visitDate: `${year}-${month}-${day}` }));
 
         if (!formRef.current) return;
@@ -112,11 +125,13 @@ const NewPatient = () => {
         navigate('/');
     };
 
+    // --- INTERCEPT FORM SUBMIT ---
     const handleInitialSubmit = (e) => {
         e.preventDefault();
         setShowConfirmModal(true); 
     };
 
+    // --- REAL SUBMIT LOGIC ---
     const confirmSavePatient = async () => {
         setShowConfirmModal(false);
         setLoading(true);
@@ -134,7 +149,7 @@ const NewPatient = () => {
             age: formData.age, mobile: formData.mobile,
             address: formData.address, chiefComplaint: formData.chiefComplaint,
             medicine: formData.medicine, 
-            tests: investigationText, 
+            tests: investigationText, // <-- Sent from our modal
             total: formData.total || 0, cartage: formData.cartage || 0,
             conveyance: formData.conveyance || 0, grandTotal: grandTotal
         };
@@ -169,6 +184,7 @@ const NewPatient = () => {
         }
     };
 
+    // Current Date Formatter for Header
     const getFormattedHeaderDate = () => {
         const options = { year: 'numeric', month: 'long', day: 'numeric' };
         return new Date().toLocaleDateString('en-US', options);
@@ -256,9 +272,11 @@ const NewPatient = () => {
                     </div>
                 </header>
 
+                {/* FORM CONTAINER */}
                 <section className="form-card-container glass-panel">
                     <form ref={formRef} onSubmit={handleInitialSubmit} className="patient-form custom-scrollbar">
                         
+                        {/* PERSONAL INFORMATION */}
                         <div className="form-section">
                             <div className="section-title">
                                 <span className="title-bar"></span>
@@ -312,6 +330,7 @@ const NewPatient = () => {
                             </div>
                         </div>
 
+                        {/* CLINICAL DETAILS */}
                         <div className="form-section mt-4">
                             <div className="section-title space-between">
                                 <div className="flex-title">
@@ -335,6 +354,7 @@ const NewPatient = () => {
                             </div>
                         </div>
 
+                        {/* BILLING DETAILS */}
                         <div className="form-section mt-4">
                             <div className="section-title">
                                 <span className="title-bar"></span>
@@ -362,12 +382,14 @@ const NewPatient = () => {
                         </div>
                     </form>
 
+                    {/* BOTTOM BAR ACTION AREA */}
                     <div className="form-bottom-bar">
                         <div className="mandatory-text">
                             <span className="material-symbols-outlined">info</span> * mandatory fields
                         </div>
                         <div className="action-btns">
                             <button type="button" onClick={() => navigate('/home')} disabled={loading} className="btn-cancel">Cancel</button>
+                            {/* Triggers the form submission programmatically */}
                             <button type="button" onClick={() => formRef.current.requestSubmit()} disabled={loading} className="btn-save shadow-btn">
                                 <span className="material-symbols-outlined">person_add_alt</span>
                                 {loading ? 'Processing...' : 'Save Patient'}
@@ -377,43 +399,45 @@ const NewPatient = () => {
                 </section>
             </main>
 
-            {/* --- FIX: BULLETPROOF INVESTIGATION MODAL --- */}
+            {/* --- BULLETPROOF INVESTIGATION MODAL --- */}
             {isInvModalOpen && (
                 <div className="modal-overlay" onClick={() => setIsInvModalOpen(false)}>
-                    <div className="modal-content" onClick={e => e.stopPropagation()} style={{ maxWidth: '600px', width: '90%', padding: '2rem', borderRadius: '16px' }}>
-                        
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '1.25rem', paddingBottom: '1rem', borderBottom: '1px solid var(--border-color)' }}>
-                            <h2 style={{ fontSize: '1.25rem', margin: 0, fontWeight: 800, color: 'var(--text-main)' }}>
-                                Add New Investigation
-                            </h2>
+                    <div 
+                        className="modal-content" 
+                        onClick={e => e.stopPropagation()} 
+                        style={{ padding: 0, maxWidth: '550px', overflow: 'hidden' }}
+                    >
+                        {/* Inline Styled Header to bypass CSS bugs */}
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '1.25rem 1.5rem', borderBottom: '1px solid var(--border-color)', backgroundColor: 'var(--surface)' }}>
+                            <h2 style={{ margin: 0, fontSize: '1.2rem', fontWeight: 800, color: 'var(--text-main)' }}>Add New Investigation</h2>
                             <button 
+                                type="button"
                                 onClick={() => setIsInvModalOpen(false)} 
-                                style={{ background: 'transparent', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', padding: '0.4rem', display: 'flex', alignItems: 'center', justifyContent: 'center', borderRadius: '8px', transition: 'background 0.2s', flexShrink: 0 }} 
-                                onMouseEnter={e => e.currentTarget.style.backgroundColor = 'rgba(0,0,0,0.05)'} 
-                                onMouseLeave={e => e.currentTarget.style.backgroundColor = 'transparent'}
+                                style={{ background: 'none', border: 'none', color: 'var(--text-muted)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '0.25rem', borderRadius: '8px' }}
                             >
                                 <span className="material-symbols-outlined" style={{ fontSize: '1.5rem' }}>close</span>
                             </button>
                         </div>
                         
-                        <p style={{ color: 'var(--text-muted)', fontSize: '0.95rem', marginBottom: '1rem' }}>
-                            Enter the details of any tests or investigations prescribed for this patient.
-                        </p>
-                        
-                        <textarea 
-                            className="form-input custom-scrollbar" 
-                            rows="6" 
-                            placeholder="E.g., Complete Blood Count (CBC), X-Ray Chest..."
-                            value={investigationText}
-                            onChange={(e) => setInvestigationText(e.target.value)}
-                            autoFocus
-                            style={{ width: '100%', resize: 'vertical', marginBottom: '1.5rem', padding: '1rem' }}
-                        ></textarea>
+                        <div style={{ padding: '1.5rem', backgroundColor: 'var(--surface-solid)' }}>
+                            <p style={{ color: 'var(--text-muted)', fontSize: '0.9rem', margin: '0 0 1rem 0' }}>
+                                Enter the details of any tests or investigations prescribed for this patient.
+                            </p>
+                            <textarea 
+                                className="form-input custom-scrollbar" 
+                                rows="6" 
+                                placeholder="E.g., Complete Blood Count (CBC), X-Ray Chest..."
+                                value={investigationText}
+                                onChange={(e) => setInvestigationText(e.target.value)}
+                                autoFocus
+                                style={{ resize: 'vertical', width: '100%' }}
+                            ></textarea>
+                        </div>
 
-                        <div style={{ display: 'flex', gap: '1rem', justifyContent: 'flex-end', paddingTop: '1rem', borderTop: '1px solid var(--border-color)' }}>
+                        <div style={{ padding: '1rem 1.5rem', borderTop: '1px solid var(--border-color)', backgroundColor: 'var(--surface)', display: 'flex', justifyContent: 'flex-end', gap: '1rem' }}>
                             <button type="button" className="btn-cancel" onClick={() => setIsInvModalOpen(false)}>Cancel</button>
-                            <button type="button" className="btn-save shadow-btn" onClick={() => setIsInvModalOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                                <span className="material-symbols-outlined">add</span> Add Investigation
+                            <button type="button" className="btn-save shadow-btn" onClick={() => setIsInvModalOpen(false)} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
+                                <span className="material-symbols-outlined" style={{ fontSize: '1.2rem' }}>add</span> Add Investigation
                             </button>
                         </div>
                     </div>
