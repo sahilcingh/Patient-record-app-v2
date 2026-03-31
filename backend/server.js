@@ -38,31 +38,15 @@ const authenticateToken = (req, res, next) => {
     });
 };
 
-// --- API ENDPOINT: GET UNIQUE PATIENTS WITH VISIT COUNT ---
-app.get('/api/patients/unique', authenticateToken, async (req, res) => {
-    try {
-        const pool = await sql.connect(dbConfig);
-        
-        // Groups by Mobile and Name, getting the latest visit ID and total visit count
-        const result = await pool.request().query(`
-            SELECT 
-                B_PName AS PatientName, 
-                B_Mobile AS Mobile, 
-                MAX(B_Date) AS LastVisitDate,
-                MAX(CAST(B_Sno AS INT)) AS LatestVisitID,
-                COUNT(B_Sno) AS VisitCount
-            FROM dbo.Pat_Master
-            WHERE B_PName IS NOT NULL AND B_PName != ''
-            GROUP BY B_PName, B_Mobile
-            ORDER BY LastVisitDate DESC, LatestVisitID DESC
-        `);
-
-        res.json({ success: true, patients: result.recordset });
-    } catch (err) {
-        console.error('Database error fetching unique patients:', err);
-        res.status(500).json({ success: false, message: 'Failed to fetch patients list.' });
+// --- HELPER: SECURE TABLE ROUTING ---
+// Strictly validates the table name to prevent SQL Injection
+const getSecureTableName = (targetTable) => {
+    if (!targetTable || !/^[a-zA-Z0-9_]+$/.test(targetTable)) {
+        throw new Error("Invalid table routing designation");
     }
-});
+    return `dbo.[${targetTable}]`;
+};
+
 
 // --- API ENDPOINT: LOGIN ---
 app.post('/api/login', async (req, res) => {
@@ -70,19 +54,22 @@ app.post('/api/login', async (req, res) => {
 
     try {
         const pool = await sql.connect(dbConfig);
+        // Notice we are now selecting the assigned_table column!
         const result = await pool.request()
             .input('username', sql.VarChar, doctorId)
-            .query('SELECT UserID, Username, Password, DoctorName FROM dbo.Pat_User WHERE Username = @username');
+            .query('SELECT UserID, Username, Password, DoctorName, assigned_table FROM dbo.Pat_User WHERE Username = @username');
 
         const user = result.recordset[0];
 
         if (!user) return res.status(401).json({ success: false, message: 'Invalid Doctor ID' });
         if (user.Password !== password) return res.status(401).json({ success: false, message: 'Invalid Password' });
 
+        // Embed the doctor's specific table right into their secure token
         const token = jwt.sign(
             { 
                 userId: user.UserID, 
-                doctorName: user.DoctorName
+                doctorName: user.DoctorName,
+                targetTable: user.assigned_table || 'Pat_Master' // Fallback just in case
             }, 
             process.env.JWT_SECRET, 
             { expiresIn: '8h' } 
@@ -100,6 +87,34 @@ app.post('/api/login', async (req, res) => {
     }
 });
 
+
+// --- API ENDPOINT: GET UNIQUE PATIENTS WITH VISIT COUNT ---
+app.get('/api/patients/unique', authenticateToken, async (req, res) => {
+    try {
+        const pool = await sql.connect(dbConfig);
+        const tableName = getSecureTableName(req.user.targetTable);
+        
+        const result = await pool.request().query(`
+            SELECT 
+                B_PName AS PatientName, 
+                B_Mobile AS Mobile, 
+                MAX(B_Date) AS LastVisitDate,
+                MAX(CAST(B_Sno AS INT)) AS LatestVisitID,
+                COUNT(B_Sno) AS VisitCount
+            FROM ${tableName}
+            WHERE B_PName IS NOT NULL AND B_PName != ''
+            GROUP BY B_PName, B_Mobile
+            ORDER BY LastVisitDate DESC, LatestVisitID DESC
+        `);
+
+        res.json({ success: true, patients: result.recordset });
+    } catch (err) {
+        console.error('Database error fetching unique patients:', err);
+        res.status(500).json({ success: false, message: 'Failed to fetch patients list.' });
+    }
+});
+
+
 // --- API ENDPOINT: SAVE NEW PATIENT VISIT ---
 app.post('/api/visits', authenticateToken, async (req, res) => {
     const { 
@@ -114,7 +129,7 @@ app.post('/api/visits', authenticateToken, async (req, res) => {
 
     try {
         const pool = await sql.connect(dbConfig);
-        const tableName = `dbo.Pat_Master`;
+        const tableName = getSecureTableName(req.user.targetTable);
 
         const transaction = new sql.Transaction(pool);
         await transaction.begin();
@@ -176,6 +191,7 @@ app.post('/api/visits', authenticateToken, async (req, res) => {
     }
 });
 
+
 // --- API ENDPOINT: SEARCH PATIENTS (Dropdown) ---
 app.get('/api/patients/search', authenticateToken, async (req, res) => {
     const { q } = req.query;
@@ -183,6 +199,8 @@ app.get('/api/patients/search', authenticateToken, async (req, res) => {
 
     try {
         const pool = await sql.connect(dbConfig);
+        const tableName = getSecureTableName(req.user.targetTable);
+
         const result = await pool.request()
             .input('query', sql.VarChar, `%${q}%`)
             .query(`
@@ -194,7 +212,7 @@ app.get('/api/patients/search', authenticateToken, async (req, res) => {
                         B_Mobile AS Mobile,
                         B_Date AS VisitDate,
                         ROW_NUMBER() OVER(PARTITION BY B_Mobile ORDER BY CAST(B_Sno AS INT) DESC) as rn
-                    FROM dbo.Pat_Master
+                    FROM ${tableName}
                     WHERE B_PName LIKE @query OR B_Mobile LIKE @query
                 )
                 SELECT VisitID, PatientName, FatherName, Mobile, VisitDate
@@ -203,7 +221,6 @@ app.get('/api/patients/search', authenticateToken, async (req, res) => {
                 ORDER BY VisitDate DESC
             `);
             
-        // Sending 'results' so React knows exactly where to find the data
         res.json({ success: true, results: result.recordset });
     } catch (err) {
         console.error('Search error:', err);
@@ -211,17 +228,17 @@ app.get('/api/patients/search', authenticateToken, async (req, res) => {
     }
 });
 
+
 // --- API ENDPOINT: DELETE A PATIENT VISIT ---
 app.delete('/api/patients/visit/:id', authenticateToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
+        const tableName = getSecureTableName(req.user.targetTable);
         
-        // Execute the delete query using the ID passed in the URL
         const result = await pool.request()
             .input('sno', sql.Int, req.params.id)
-            .query(`DELETE FROM dbo.Pat_Master WHERE B_Sno = @sno`);
+            .query(`DELETE FROM ${tableName} WHERE B_Sno = @sno`);
             
-        // Check if a row was actually deleted
         if (result.rowsAffected[0] > 0) {
             res.json({ success: true, message: 'Visit record deleted successfully.' });
         } else {
@@ -233,12 +250,15 @@ app.delete('/api/patients/visit/:id', authenticateToken, async (req, res) => {
     }
 });
 
+
 // --- API ENDPOINT: GET PATIENT VISIT HISTORY (Modal) ---
 app.get('/api/patients/history', authenticateToken, async (req, res) => {
     const { mobile, name } = req.query;
     
     try {
         const pool = await sql.connect(dbConfig);
+        const tableName = getSecureTableName(req.user.targetTable);
+
         const result = await pool.request()
             .input('mobile', sql.VarChar, mobile || '')
             .input('name', sql.VarChar, name || '')
@@ -249,12 +269,11 @@ app.get('/api/patients/history', authenticateToken, async (req, res) => {
                     B_FName AS FatherName, 
                     B_Mobile AS Mobile, 
                     B_Date AS VisitDate 
-                FROM dbo.Pat_Master 
+                FROM ${tableName}
                 WHERE B_Mobile = @mobile OR (B_PName = @name AND (B_Mobile IS NULL OR B_Mobile = ''))
                 ORDER BY CAST(B_Sno AS INT) DESC
             `);
             
-        // Sending 'history' back to React
         res.json({ success: true, history: result.recordset });
     } catch (err) {
         console.error("History error:", err);
@@ -262,13 +281,16 @@ app.get('/api/patients/history', authenticateToken, async (req, res) => {
     }
 });
 
+
 // --- API ENDPOINT: GET SINGLE VISIT DETAILS (Auto-fill Old Patient) ---
 app.get('/api/patients/visit/:id', authenticateToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
+        const tableName = getSecureTableName(req.user.targetTable);
+
         const result = await pool.request()
             .input('sno', sql.Int, req.params.id)
-            .query(`SELECT * FROM dbo.Pat_Master WHERE B_Sno = @sno`);
+            .query(`SELECT * FROM ${tableName} WHERE B_Sno = @sno`);
             
         if (result.recordset.length > 0) {
             res.json({ success: true, visit: result.recordset[0] });
@@ -281,11 +303,12 @@ app.get('/api/patients/visit/:id', authenticateToken, async (req, res) => {
     }
 });
 
+
 // --- API ENDPOINT: GET ALL PATIENTS (Master List) ---
 app.get('/api/patients/all', authenticateToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
-        const tableName = `dbo.Pat_Master`;
+        const tableName = getSecureTableName(req.user.targetTable);
 
         const result = await pool.request().query(`
             SELECT 
@@ -298,22 +321,19 @@ app.get('/api/patients/all', authenticateToken, async (req, res) => {
             ORDER BY CAST(B_Sno AS INT) DESC
         `);
 
-        res.json({ 
-            success: true, 
-            patients: result.recordset 
-        });
-
+        res.json({ success: true, patients: result.recordset });
     } catch (err) {
         console.error('Database error fetching all patients:', err);
         res.status(500).json({ success: false, message: 'Failed to fetch patients master list.' });
     }
 });
 
+
 // --- API ENDPOINT: GET RECENT PATIENTS ---
 app.get('/api/patients/recent', authenticateToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
-        const tableName = `dbo.Pat_Master`;
+        const tableName = getSecureTableName(req.user.targetTable);
 
         const result = await pool.request().query(`
             SELECT TOP 6
@@ -324,23 +344,20 @@ app.get('/api/patients/recent', authenticateToken, async (req, res) => {
             ORDER BY CAST(B_Sno AS INT) DESC
         `);
 
-        res.json({ 
-            success: true, 
-            patients: result.recordset 
-        });
-
+        res.json({ success: true, patients: result.recordset });
     } catch (err) {
         console.error('Database error fetching recent patients:', err);
         res.status(500).json({ success: false, message: 'Failed to fetch recent patients.' });
     }
 });
 
+
 // --- API ENDPOINT: GET DOCTOR PROFILE ---
 app.get('/api/profile', authenticateToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         
-        // We use req.user.userId from the JWT token to ensure we get the logged-in doctor
+        // This query stays pointed to Pat_User because all doctors share the master profile table
         const result = await pool.request()
             .input('userId', sql.Int, req.user.userId)
             .query(`
@@ -360,9 +377,9 @@ app.get('/api/profile', authenticateToken, async (req, res) => {
     }
 });
 
+
 // --- API ENDPOINT: UPDATE DOCTOR PROFILE ---
 app.put('/api/profile', authenticateToken, async (req, res) => {
-    // These names match the formData object in your React frontend
     const { username, password, doctorName, designation, clinicName, clinicAddress, clinicTimings } = req.body;
 
     try {
@@ -372,12 +389,11 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
         request.input('userId', sql.Int, req.user.userId);
         request.input('username', sql.VarChar, username || '');
         request.input('doctorName', sql.VarChar, doctorName || '');
-        request.input('doctorDesi', sql.VarChar, designation || ''); // Maps to DoctorDesi
-        request.input('compName', sql.VarChar, clinicName || '');    // Maps to CompName
+        request.input('doctorDesi', sql.VarChar, designation || ''); 
+        request.input('compName', sql.VarChar, clinicName || '');    
         request.input('clinicAddress', sql.VarChar, clinicAddress || '');
         request.input('clinicTimings', sql.VarChar, clinicTimings || '');
 
-        // Base update query
         let query = `
             UPDATE dbo.Pat_User
             SET Username = @username,
@@ -388,7 +404,6 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
                 ClinicTimings = @clinicTimings
         `;
 
-        // Only update the password if the user actually typed a new one
         if (password && password.trim() !== '') {
             request.input('password', sql.VarChar, password);
             query += `, Password = @password`;
@@ -397,7 +412,6 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
         query += ` WHERE UserID = @userId`;
 
         await request.query(query);
-
         res.json({ success: true, message: 'Profile updated successfully!' });
     } catch (err) {
         console.error('Database error updating profile:', err);
@@ -405,12 +419,13 @@ app.put('/api/profile', authenticateToken, async (req, res) => {
     }
 });
 
+
 // --- API ENDPOINT: GET DASHBOARD STATS & TRENDS ---
 app.get('/api/stats', authenticateToken, async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
+        const tableName = getSecureTableName(req.user.targetTable);
         
-        // This query securely fetches all the time-based data we need for math
         const result = await pool.request().query(`
             DECLARE @Today DATE = CAST(GETDATE() AS DATE);
             DECLARE @Yesterday DATE = DATEADD(day, -1, @Today);
@@ -420,46 +435,36 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
             DECLARE @LastMonthStart DATE = DATEADD(month, -1, @MonthStart);
 
             SELECT 
-                -- 1. Patients Today vs Yesterday
-                (SELECT COUNT(*) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) = @Today) AS PatientsToday,
-                (SELECT COUNT(*) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) = @Yesterday) AS PatientsYesterday,
+                (SELECT COUNT(*) FROM ${tableName} WHERE CAST(B_Date AS DATE) = @Today) AS PatientsToday,
+                (SELECT COUNT(*) FROM ${tableName} WHERE CAST(B_Date AS DATE) = @Yesterday) AS PatientsYesterday,
                 
-                -- 2. New Registrations This Week vs Last Week
-                (SELECT COUNT(*) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) >= @WeekStart) AS RegThisWeek,
-                (SELECT COUNT(*) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) >= @LastWeekStart AND CAST(B_Date AS DATE) < @WeekStart) AS RegLastWeek,
+                (SELECT COUNT(*) FROM ${tableName} WHERE CAST(B_Date AS DATE) >= @WeekStart) AS RegThisWeek,
+                (SELECT COUNT(*) FROM ${tableName} WHERE CAST(B_Date AS DATE) >= @LastWeekStart AND CAST(B_Date AS DATE) < @WeekStart) AS RegLastWeek,
                 
-                -- 3. Tests Prescribed This Week vs Last Week
-                (SELECT COUNT(*) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) >= @WeekStart AND B_Tests IS NOT NULL AND DATALENGTH(B_Tests) > 0) AS TestsThisWeek,
-                (SELECT COUNT(*) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) >= @LastWeekStart AND CAST(B_Date AS DATE) < @WeekStart AND B_Tests IS NOT NULL AND DATALENGTH(B_Tests) > 0) AS TestsLastWeek,
+                (SELECT COUNT(*) FROM ${tableName} WHERE CAST(B_Date AS DATE) >= @WeekStart AND B_Tests IS NOT NULL AND DATALENGTH(B_Tests) > 0) AS TestsThisWeek,
+                (SELECT COUNT(*) FROM ${tableName} WHERE CAST(B_Date AS DATE) >= @LastWeekStart AND CAST(B_Date AS DATE) < @WeekStart AND B_Tests IS NOT NULL AND DATALENGTH(B_Tests) > 0) AS TestsLastWeek,
                 
-                -- 4. Revenue Today & This Month vs Last Month
-                ISNULL((SELECT SUM(B_TotalAmt) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) = @Today), 0) AS RevToday,
-                ISNULL((SELECT SUM(B_TotalAmt) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) >= @MonthStart), 0) AS RevThisMonth,
-                ISNULL((SELECT SUM(B_TotalAmt) FROM dbo.Pat_Master WHERE CAST(B_Date AS DATE) >= @LastMonthStart AND CAST(B_Date AS DATE) < @MonthStart), 0) AS RevLastMonth
+                ISNULL((SELECT SUM(B_TotalAmt) FROM ${tableName} WHERE CAST(B_Date AS DATE) = @Today), 0) AS RevToday,
+                ISNULL((SELECT SUM(B_TotalAmt) FROM ${tableName} WHERE CAST(B_Date AS DATE) >= @MonthStart), 0) AS RevThisMonth,
+                ISNULL((SELECT SUM(B_TotalAmt) FROM ${tableName} WHERE CAST(B_Date AS DATE) >= @LastMonthStart AND CAST(B_Date AS DATE) < @MonthStart), 0) AS RevLastMonth
         `);
 
         const data = result.recordset[0];
 
-        // --- SAFE MATH HELPER ---
-        // Prevents dividing by zero if there was no data in the previous period
         const calcTrend = (current, previous) => {
             if (previous === 0) return current > 0 ? 100 : 0; 
             return (((current - previous) / previous) * 100).toFixed(1);
         };
 
-        // Send the formatted stats and calculated trends to the frontend
         res.json({
             success: true,
             stats: {
                 patientsToday: data.PatientsToday,
                 patientsTrend: calcTrend(data.PatientsToday, data.PatientsYesterday),
-                
                 newRegistrations: data.RegThisWeek,
                 registrationsTrend: calcTrend(data.RegThisWeek, data.RegLastWeek),
-                
                 testsPrescribed: data.TestsThisWeek,
                 testsTrend: calcTrend(data.TestsThisWeek, data.TestsLastWeek),
-                
                 dailyRevenue: data.RevToday,
                 revenueTrend: calcTrend(data.RevThisMonth, data.RevLastMonth)
             }
@@ -470,39 +475,19 @@ app.get('/api/stats', authenticateToken, async (req, res) => {
         res.status(500).json({ success: false, message: 'Failed to fetch dashboard stats.' });
     }
 });
-// --- HEALTH CHECK ROUTE (Keeps the server awake) ---
-app.get('/', (req, res) => {
-    res.status(200).send('Backend is awake and running!');
-});
-// Basic root route (already existed)
-app.get('/', (req, res) => {
-    res.status(200).send('Backend is awake and running!');
-});
 
-// 🔥 NEW PRODUCTION HEALTH CHECK (For cron monitoring)
+// --- HEALTH CHECK ROUTE ---
+app.get('/', (req, res) => { res.status(200).send('Backend is awake and running!'); });
+
 app.get('/health', async (req, res) => {
     try {
         const pool = await sql.connect(dbConfig);
         await pool.request().query('SELECT 1');
-
-        res.status(200).json({
-            status: "OK",
-            database: "Connected",
-            service: "Patient Record Backend",
-            timestamp: new Date()
-        });
-
+        res.status(200).json({ status: "OK", database: "Connected", timestamp: new Date() });
     } catch (err) {
-        console.error("Health check failed:", err);
-
-        res.status(500).json({
-            status: "ERROR",
-            database: "Disconnected",
-            timestamp: new Date()
-        });
+        res.status(500).json({ status: "ERROR", database: "Disconnected", timestamp: new Date() });
     }
 });
-
 
 // --- START THE SERVER ---
 app.listen(PORT, () => {
